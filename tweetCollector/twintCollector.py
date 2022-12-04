@@ -23,7 +23,6 @@ def tweetCollector(tid,keyword, collection_name, delta, dateList):
 
 #convert csv to json
 def convertCSVToJSON():
-
     with open("output.csv", 'r', encoding="utf8") as csvfile:
         fline = csvfile.readline()
         header = fline.split(",")
