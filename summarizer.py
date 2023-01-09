@@ -54,10 +54,10 @@ preprocess_text = text.strip().replace("\n", "")
 t5_prepared_Text = "summarize: "+preprocess_text
 tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=1024, truncation=True).to(device)
 summary_ids = model.generate(tokenized_text,
-                            num_beams=2,
+                            num_beams=4,
                             min_length=80,
                             max_length=150,
-                            length_penalty=5.,
+                            length_penalty=2.0,
                             )
 
 print(summary_ids, end="\n")
