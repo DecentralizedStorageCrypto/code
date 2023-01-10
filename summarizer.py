@@ -10,7 +10,7 @@ text = """ Like most assets, it is always challenging to make a long-term predic
 According to Digital Coin Price, the estimation is that the STORJ price will rise to $2.27 by 2025. Furthermore, the estimation is that the coin will soar to over $6 by 2031; obviously, these estimates should always be taken with a grain of salt.
 """
 
-device = torch.device('cpu')
+device =torch.device('cpu')
 preprocess_text = text.strip().replace("\n", "")
 t5_prepared_Text = "summarize: "+preprocess_text
 tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(device)
