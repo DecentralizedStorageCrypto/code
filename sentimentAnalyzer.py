@@ -13,6 +13,6 @@ outputs = finbert(**inputs)[0]
 print(outputs)
 
 
-labels = {0:'neutral', 1:'positive',2:'negative'}
+labels = {0: 'neutral', 1: 'positive', 2: 'negative'}
 for idx, sent in enumerate(sentences):
     print(sent, '----', labels[np.argmax(outputs.detach().numpy()[idx])])

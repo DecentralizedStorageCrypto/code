@@ -30,3 +30,16 @@ print(summary_ids, end="\n")
 output = tokenizer.decode(summary_ids[0])
 print(output)
 
+finbert = BertForSequenceClassification.from_pretrained('yiyanghkust/finbert-tone',num_labels=3)
+tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-tone')
+
+inputs = tokenizer(output, return_tensors="pt", padding=True)
+outputs = finbert(**inputs)[0]
+
+print(outputs)
+
+labels = {0: 'neutral', 1: 'positive', 2: 'negative'}
+for idx, sent in enumerate(output):
+    print(sent, '----', labels[np.argmax(outputs.detach().numpy()[idx])])
+
+
