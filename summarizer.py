@@ -7,13 +7,8 @@ import numpy as np
 model = T5ForConditionalGeneration.from_pretrained('t5-large')
 tokenizer = T5Tokenizer.from_pretrained('t5-large')
 
-text = """ Like most assets, it is always challenging to make a long-term prediction. 
-The same situation is more difficult for risky assets like cryptocurrencies. 
-It is even harder for a small coin in an industry that is no longer in a growth mode. 
-According to Digital Coin Price, the estimation is that the STORJ price will rise to $2.27 by 2025. 
-Furthermore, the estimation is that the coin will soar to over $6 by 2031; obviously, 
-these estimates should always be taken with a grain of salt.
-"""
+text = """According to Digital Coin Price, the estimation is that the STORJ price will rise to $2.27 by 2025. 
+Furthermore, the estimation is that the coin will soar to over $6 by 2031; obviously"""
 
 device =torch.device('cpu')
 preprocess_text = text.strip().replace("\n", "")
@@ -21,25 +16,17 @@ t5_prepared_Text = "summarize: "+preprocess_text
 tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(device)
 summary_ids = model.generate(tokenized_text,
                             num_beams=4,
-                            min_length=80,
-                            max_length=200,
+                            min_length=50,
+                            max_length=100,
                             length_penalty=2.0,
                             )
-
 print(summary_ids, end="\n")
-output = tokenizer.decode(summary_ids[0])
-print(output)
-
+summary = tokenizer.decode(summary_ids[0])
+print(summary)
 finbert = BertForSequenceClassification.from_pretrained('yiyanghkust/finbert-tone',num_labels=3)
 tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-tone')
-
-inputs = tokenizer(output, return_tensors="pt", padding=True)
-outputs = finbert(**inputs)[0]
-
-print(outputs)
-
+inputs = tokenizer(summary, return_tensors="pt", padding=True)
+sent_scores = finbert(**inputs)[0]
+print(sent_scores)
 labels = {0: 'neutral', 1: 'positive', 2: 'negative'}
-for idx, sent in enumerate(output):
-    print(sent, '----', labels[np.argmax(outputs.detach().numpy()[idx])])
-
-
+print(labels[np.argmax(sent_scores.detach().numpy())])
