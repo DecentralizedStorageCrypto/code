@@ -3,6 +3,8 @@ import json
 from transformers import T5Tokenizer, T5ForConditionalGeneration,T5Config
 from transformers import BertTokenizer, BertForSequenceClassification
 import numpy as np
+import torch.nn as tornn
+
 
 model = T5ForConditionalGeneration.from_pretrained('t5-large')
 tokenizer = T5Tokenizer.from_pretrained('t5-large')
@@ -15,7 +17,7 @@ preprocess_text = text.strip().replace("\n", "")
 t5_prepared_Text = "summarize: "+preprocess_text
 tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(device)
 summary_ids = model.generate(tokenized_text,
-                            num_beams=4,
+                            num_beams=6,
                             min_length=50,
                             max_length=100,
                             length_penalty=2.0,
@@ -28,5 +30,8 @@ tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-tone')
 inputs = tokenizer(summary, return_tensors="pt", padding=True)
 sent_scores = finbert(**inputs)[0]
 print(sent_scores)
+sftmx = tornn.Softmax(dim=0)
+b = sftmx(sent_scores)
+print(b)
 labels = {0: 'neutral', 1: 'positive', 2: 'negative'}
 print(labels[np.argmax(sent_scores.detach().numpy())])
