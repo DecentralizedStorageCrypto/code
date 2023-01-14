@@ -51,7 +51,6 @@ for counter in range(df.shape[0]):
     # print(sent_scores_text)
     phrase_score_list = []
     labels = {0: 'neutral', 1: 'positive', 2: 'negative'}
-    print()
     for item in key_phrases:
         phrase = item['phrase']
         input = tokenizer(phrase, return_tensors="pt", padding=True)
@@ -59,22 +58,25 @@ for counter in range(df.shape[0]):
         nmpy_phrase = sent_scores_phrase.detach().numpy()
         x = nmpy_phrase[0]
         sft_phrase = (np.exp(x) / np.exp(x).sum())
-        print(phrase, "-->", sent_scores_phrase, labels[np.argmax(sft_phrase.detach().numpy())] )
+        print(phrase, "-->", sent_scores_phrase, labels[np.argmax(sft_phrase)], end="\n")
         phrase_score_list.append(sft_phrase)
-
+    #print(phrase_score_list)
     phrase_nmp = np.array(phrase_score_list)
     final_snt_phrase = np.mean(phrase_nmp, axis=0)
-    print(final_snt_phrase)
+    print("The average sentiment score of key phrases is: ", final_snt_phrase, end="\n")
     nmpy_title = sent_scores_title.detach().numpy()
     nmpy_text = sent_scores_title.detach().numpy()
     x1 = nmpy_title[0]
     x2 = nmpy_text[0]
     sft_title = (np.exp(x1) / np.exp(x1).sum())
     sft_text = (np.exp(x2) / np.exp(x2).sum())
+    print("The sentiment score of title is: ", sft_title, end="\n")
+    print("The sentiment score of summary is: ", sft_text, end="\n")
     med_snt = np.vstack((sft_title, sft_text, final_snt_phrase))
     print(med_snt)
     final_snt = np.mean(med_snt, axis=0)
-    print(final_snt)
-    print(labels[np.argmax(sft_title)])
-    print(labels[np.argmax(sft_text)])
-    print(labels[np.argmax(final_snt)])
+    print("The average sentiment score of title, key phrases and summary is: ", final_snt, end="\n")
+    print("The average sentiment of key phrases is:", labels[np.argmax(final_snt_phrase)], end="\n")
+    print("The sentiment of title is:", labels[np.argmax(sft_title)], end="\n")
+    print("The sentiment of summary is:", labels[np.argmax(sft_text)], end="\n")
+    print("The average sentiment of title, key phrases, and summary, is:", labels[np.argmax(final_snt)], end="\n")
