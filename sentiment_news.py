@@ -63,7 +63,7 @@ for counter in range(46, 47):
     final_snt_phrase = np.mean(phrase_nmp, axis=0)
     print("\n The average sentiment score of key phrases is: ", final_snt_phrase, end="\n\n")
     nmpy_title = sent_scores_title.detach().numpy()
-    nmpy_text = sent_scores_title.detach().numpy()
+    nmpy_text = sent_scores_text.detach().numpy()
     x1 = nmpy_title[0]
     x2 = nmpy_text[0]
     sft_title = (np.exp(x1) / np.exp(x1).sum())
