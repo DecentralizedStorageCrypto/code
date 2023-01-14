@@ -18,21 +18,21 @@ mng = mongodb(localhost, db_name)
 
 df = mng.returnColAsDf(collection_name)
 
-for counter in range(df.shape[0]):
-
+for counter in range(46, 47):
     title = str(df.iloc[counter]['title'])
     text = str(df.iloc[counter]['text'])
     key_phrases = df.iloc[counter]['KeyPhrase']
     print(title)
     preprocess_text = text.strip().replace("\n", "")
-    maxLength = len(preprocess_text.split(" ")) / 2
+    maxLength = len(preprocess_text.split(" ")) / 3
+    minLength = len(preprocess_text.split(" ")) / 6
     print(preprocess_text)
     t5_prepared_Text = "summarize: " + preprocess_text
     tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(
         device)
     summary_ids = model.generate(tokenized_text,
                                  num_beams=8,
-                                 min_length=80,
+                                 min_length=minLength,
                                  max_length=maxLength,
                                  length_penalty=2.0,
                                  )
