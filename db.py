@@ -63,6 +63,10 @@ class mongodb:
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'tokenizedTweet': tokenizedTweet}})
 
+    def addSummary(self, collection, id, summmary):
+        collection = self.db[collection]
+        collection.update_one({'_id': id}, {"$set": {'summary': summmary}})
+
     def addAggScore(self, collection, id, score):
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'aggrScore': score}})
