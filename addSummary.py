@@ -19,9 +19,10 @@ mng = mongodb(localhost, db_name)
 def addSummaryToNews():
     df = mng.returnColAsDf(collection_name)
     for counter in range(df.shape[0]):
-        _id = df[counter]['_id']
+        _id = df.iloc[counter]['_id']
         try:
             text = str(df.iloc[counter]['text'])
+            print(text)
             preprocess_text = text.strip().replace("\n", "")
             maxLength = int(len(preprocess_text.split(" ")) / 2)
             minLength = int(len(preprocess_text.split(" ")) / 6)
@@ -34,6 +35,7 @@ def addSummaryToNews():
                                          num_beams=6,
                                          min_length=minLength,
                                          max_length=maxLength,
+                                         length_penalty=0.75
                                          )
             # print(summary_ids, end="\n")
             summary = tokenizer.decode(summary_ids[0])
