@@ -22,8 +22,8 @@ def addSummaryToNews():
         _id = df.iloc[counter]['_id']
         try:
             text = str(df.iloc[counter]['text'])
-            print(text)
             preprocess_text = text.strip().replace("\n", "")
+            print(preprocess_text, end="\n\n\n")
             maxLength = int(len(preprocess_text.split(" ")) / 2)
             minLength = int(len(preprocess_text.split(" ")) / 6)
             print(preprocess_text)
@@ -39,7 +39,7 @@ def addSummaryToNews():
                                          )
             # print(summary_ids, end="\n")
             summary = tokenizer.decode(summary_ids[0])
-            print("\n\n summary: ", summary, end="\n")
+            print("\n\n summary: ", summary, end="\n\n")
         except:
             summary = " "
         mng.addSummary(collection_name, _id, str(summary))
