@@ -1,113 +1,133 @@
-import pandas as pd
-from pygooglenews import GoogleNews
-import datetime
+import xml.etree.ElementTree as ET
+import requests
+import time
 import newspaper
-from newspaper import Config
-from pymongo import MongoClient
+import datetime
+import pandas as pd
+from db import mongodb
 import threading
-import argparse
 import sys
 
-config = Config()
-config.request_timeout = 100
 
+localhost = "mongodb://127.0.0.1:27017"
+db_name = "players"
+mng = mongodb(localhost, db_name)
+collection_name = "entities"
 
-# collecting news articles by keyword and store it to the defined collelction of mongodb
-def collectNews(tid, gn, keyword, collection_name, delta, date_list):
-    try:
-        # iterate over defined time frame for collecting news articles
-        for date in date_list[:-1]:
+#loading the rss page
+def loadPage(url, fileName=None):
 
-            tmp = str(date).split(' ')
-            startDate = tmp[0]
-            endDate = (date + delta)
-            tmp = str(endDate).split(' ')
-            endDate = tmp[0]
-            # collecing related links of news articles due to defined keyword for a specific day, using pygooglenews
-            result = gn.search(keyword, helper=True, from_=startDate, to_=endDate)
+    flag = False
+    # setting the headers of request to get the latest news of rss feed
+    headers = {
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36'}
+    resp = requests.get(url, timeout=20, headers=headers)
+    if resp.status_code == 200:
+        # saving the xml file
+        with open(fileName, 'wb') as f:
+            f.write(resp.content)
+            f.close()
+            flag = True
+            return flag
+    else:
+        return flag
 
-            if len(result['entries']) == 0:
-                sys.exit("IP was blocked by google, please try again, later !!!")
+#parsing xml file
 
-            # iterate over the collected links and collecting the news title, news body, news published date and news top image link
-            for e in result['entries']:
-                try:
-                    print(e)
-                    url = e['links'][0]['href']
-                    # print(url)
-                    news = newspaper.Article(url=url, language='en')
-                    news.download()
-                    news.parse()
-                    # print(news.publish_date)
-                    p_date = news.publish_date
-                    if p_date == None:
-                        p_date = date
-                    # store the collected news as a json object
-                    news = {
-                        # title : News Headline
-                        # text : News content
-                        # authors : authors of news
-                        # published_date : news timestamp
-                        # top_image : related url of top image using in news
-                        # link : related url
-                        "title": str(news.title),
-                        "text": str(news.text),
-                        "authors": news.authors,
-                        "published_date": p_date,
-                        "top_image": str(news.top_image),
-                        "link": url,
-                        "keyword": keyword
-                    }
-                    print("from thread number", tid, "->", news)
-                    # write the related json object to the corresponding collection of mongodb
-                    writeToDb(news, collection_name)
+def parseXML(xmlfile, entity):
 
-                except:
-                    print("unable to download news: ", url)
-                    pass
-    except:
-        print("sorry, owing to connection issues, as of present we are not able to complete your request")
-        pass
+    tree = ET.parse(xmlfile)
+    #get root element of xml file
+    root = tree.getroot()
+    #iterate over news items of xml file
 
+    for item in root:
+        for item in item.findall('item'):
+            for child in item:
+                if child.tag == 'link':
+                    url = child.text
+                    print(url)
+                elif child.tag == 'pubDate':
+                    publish_date = child.text
+                    print(entity)
+                    print(publish_date)
+            try:
+                doc = newspaper.Article(url=url, language='en')
+                doc.download()
+                doc.parse()
+                doc = {
+                    "title": str(doc.title),
+                    "text": str(doc.text),
+                    "authors": doc.authors,
+                    "published_date": publish_date,
+                    "top_image": str(doc.top_image),
+                    "link": url,
+                    "entity": entity
+                }
+                #print(doc)
+                writeToDb(doc)
+            except Exception as e:
+                print(str(e))
+                pass
 
-# write the collected news article to mongodb.
-def writeToDb(news, collection_name):
-    collection = db[collection_name]
-    collection.insert_one(news)
+#write to the orresponding collection of mongodb
+def writeToDb(doc):
+    mng.writeOne("news", doc)
 
+def newsScrapper(tid, entity):
 
-# calling main function
-if __name__ == "__main__":
-
-    # initiating the pygooglenews instance for collecting the related links of news articles
-    gn = GoogleNews(lang='en')
-    parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="Input File Name")
-    args = parser.parse_args()
-    metadata = pd.read_csv(args.input)
-    db_url = metadata.iloc[0]['db_url']
-    # connecting to the mongodb
-    client = MongoClient(db_url)
-    db_name = metadata.iloc[0]['db_name']
-    # defining database name
-    db = client[db_name]
-    collection_name = metadata.iloc[0]['collection_name']
-    # defining the start date as well as finish date for collecting news articles
-    s_lst = metadata.iloc[0]['start_date'].split(',')
+    print(tid)
+    s_lst = "2022/01/01".split('/')
     # defining start date
     start_date = datetime.date(int(s_lst[0]), int(s_lst[1]), int(s_lst[2]))
+    #print(start_date)
     # defining end date
-    f_lst = metadata.iloc[0]['end_date'].split(',')
+    f_lst = "2022/02/01".split('/')
     finish_date = datetime.date(int(f_lst[0]), int(f_lst[1]), int(f_lst[2]))
-    delta = datetime.timedelta(days=1)
+    #print(finish_date)
     # defining a list of dates within the defined range
-    date_list = pd.date_range(start_date, finish_date).tolist()
-    print(date_list)
-    # defining key phrases
-    keyPhrases = metadata['key_phrases']
-    # initializing threads
-    threads = []
-    for i in range(len(keyPhrases)):
-        threads.append(
-            threading.Thread(target=collectNews, args=(i, gn, keyPhrases[i], collection_name, delta, date_list)))
-        threads[i].start()
+    BASE_URL = 'https://news.google.com/rss'
+    query = 'allintext:{}'.format(entity) + ' ' + 'after:{}'.format(start_date) + ' ' + 'before:{}'.format(finish_date)
+    #print(query)
+    URL = BASE_URL + '/search?q={}'.format(query)
+    filename = 'info/{}_news.xml'.format(entity)
+    flag = loadPage(URL, filename)
+    if flag:
+        print('successfully done')
+        parseXML(filename, entity)
+
+#calling main to collect latest news of the feed web page
+if __name__ == "__main__":
+    df = mng.returnColAsDf(collection_name)
+    entity_list = []
+    for counter in range(df.shape[0]):
+        if df.iloc[counter]['category'] != 'infulencer':
+            entity_list.append(df.iloc[counter]['player'])
+    print(entity_list)
+    num_entity = len(entity_list)
+    batch_size = 5
+    res = num_entity % batch_size
+    print(res)
+    phases = int(num_entity / batch_size)
+    print(phases)
+    for counter in range(phases):
+        can_list = entity_list[counter*batch_size:(counter+1)*batch_size]
+        print("current list is:", can_list)
+        threads = []
+        for i in range(len(can_list)):
+            #print(can_list[i])
+            threads.append(threading.Thread(target=newsScrapper, args=(i, can_list[i])))
+            threads[i].start()
+        for j in range(len(can_list)):
+            threads[j].join()
+        print("counter is:", counter)
+        print("waiting...")
+        time.sleep(300)
+    if res != 0:
+        can_list = entity_list[-res:]
+        threads = []
+        for i in range(len(can_list)):
+            threads.append(threading.Thread(target=newsScrapper, args=(i, can_list[i])))
+            threads[i].start()
+        for j in range(len(can_list)):
+            threads[j].join()

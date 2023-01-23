@@ -3,6 +3,7 @@ from db import mongodb
 from preprocessing import textProcessing
 
 class network:
+
     def __init__(self, neoUrl, neoUser, neoPass):
         self.neoUrl = neoUrl
         self.neoUser = neoUser
@@ -17,15 +18,14 @@ class network:
         mongo_db_name = "players"
         mng = mongodb(localhost, mongo_db_name)
         df_1 = mng.returnColAsDf(collection_name)
-        print(df_1)
         for counter in range(df_1.shape[0]):
             player1 = df_1.iloc[counter]['root']
             players2 = df_1.iloc[counter]['child'].split("-")
             category1 = player1.split("-")
             self.neo.create_new_player(db_name, category1, player1)
             for p2 in players2:
-                category2 = p2.split("-")
-                lst_cat = category1 + category2
+                #category2 = p2.split("-")
+                lst_cat = category1
                 self.neo.create_new_player(db_name, lst_cat, p2)
 
     def add_node_entity(self, collection_name, db_name):
@@ -33,7 +33,6 @@ class network:
         mongo_db_name = "players"
         mng = mongodb(localhost, mongo_db_name)
         df = mng.returnColAsDf(collection_name)
-        print(df)
         for counter in range(df.shape[0]):
             player = df.iloc[counter]['player']
             category = df.iloc[counter]['category'].split("-")
@@ -47,14 +46,13 @@ class network:
         mongo_db_name = "players"
         mng = mongodb(localhost, mongo_db_name)
         df = mng.returnColAsDf(collection_name)
-        print(df)
         for counter in range(df.shape[0]):
             player1 = df.iloc[counter]['root']
             players2 = df.iloc[counter]['child'].split("-")
             category1 = player1.split("-")
             for p2 in players2:
-                category2 = p2.split("-")
-                lst_cat = category1 + category2
+                #category2 = p2.split("-")
+                lst_cat = category1
                 self.neo.create_new_edge_cat(db_name, category1, player1, lst_cat, p2)
 
     def add_edge_entity(self, collection_name, db_name):
@@ -62,7 +60,6 @@ class network:
         mongo_db_name = "players"
         mng = mongodb(localhost, mongo_db_name)
         df = mng.returnColAsDf(collection_name)
-        print(df)
         for counter in range(df.shape[0]):
             players_1 = df.iloc[counter]['category'].split("-")
             root = df.iloc[counter]['root']
@@ -70,7 +67,7 @@ class network:
             category2 = players_1
             for p in players_1:
                 cat1_list = []
-                cat1_list.append(p)
+                #cat1_list.append(p)
                 cat1_list.append(root)
                 self.neo.create_new_edge_cat(db_name, cat1_list, p, category2, player_2)
 
@@ -110,39 +107,39 @@ class network:
                     tmp_title_score = 0
                     title = lst[j]['title']
                     tokens = txtprc.normalizing(title)
-                    print(tokens)
+                    #print(tokens)
                     for w in exc_list:
                         if w in tokens:
                             tmp_title_score -= epsilon
                             # print(w)
-                    print("after removing exclude words -->", tmp_title_score)
+                    #print("after removing exclude words -->", tmp_title_score)
                     if tmp_title_score > -epsilon:
                         p2_lst = player2.lower().split(" ")
-                        print(p2_lst)
+                        #print(p2_lst)
                         if len(p2_lst) > 1:
                             if player1 in tokens and p2_lst[0] in tokens and p2_lst[1] in tokens:
                                 tmp_title_score += title_pos
                         else:
                             if player1 in tokens and p2_lst[0] in tokens:
                                 tmp_title_score += title_pos
-                    print("final ->", tmp_title_score)
+                    #print("final ->", tmp_title_score)
                     title_final_score += tmp_title_score
-            except:
-                pass
+            except Exception as e:
+                print(str(e))
 
-            print(title_final_score)
+            #print(title_final_score)
             snippet_final_score = 0
             try:
                 for j in range(len(lst) - 1):
                     tmp_snippet_score = 0
                     snippet = lst[j]['snippet']
                     tokens = txtprc.normalizing(str(snippet))
-                    print(tokens)
+                    #print(tokens)
                     for w in exc_list:
                         if w in tokens:
                             tmp_snippet_score -= epsilon
-                            print(w)
-                    print("after removing exclude words -->", tmp_snippet_score)
+                            #print(w)
+                    #print("after removing exclude words -->", tmp_snippet_score)
                     if tmp_snippet_score > -epsilon:
                         p2_lst = player2.lower().split(" ")
                         if len(p2_lst) > 1:
@@ -152,10 +149,10 @@ class network:
                             if player1 in tokens and p2_lst[0] in tokens:
                                 tmp_snippet_score += snip_pos
 
-                    print("final ->", tmp_snippet_score)
+                    #print("final ->", tmp_snippet_score)
                     snippet_final_score += tmp_snippet_score
-            except:
-                pass
+            except Exception as e:
+                print(str(e))
             url_final_score = 0
             try:
                 urls = lst[-1]['urls']
@@ -167,7 +164,7 @@ class network:
                         url_final_score += url_pos - epsilon
             except:
                 pass
-            print(url_final_score)
+            #print(url_final_score)
             final_score = round(((snippet_final_score + title_final_score + url_final_score) / 3), 2)
             print(player1, final_score, player2)
             self.neo.create_new_edge_rel(db_name, category1, player1, category2, player2, final_score)

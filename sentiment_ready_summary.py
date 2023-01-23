@@ -28,7 +28,7 @@ for counter in range(df.shape[0]):
     minLength = int(len(preprocess_text.split(" ")) / 5)
     print(preprocess_text)
     summary = str(df.iloc[counter]['summary'])
-    print("\n\n summary: ", summary, end="\n")
+    print("\n\n summary: ", summary, end="\n\n")
 
     finbert = BertForSequenceClassification.from_pretrained('yiyanghkust/finbert-tone', num_labels=3)
     tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-tone')
@@ -39,21 +39,21 @@ for counter in range(df.shape[0]):
     sent_scores_text = finbert(**input2)[0]
     # print(sent_scores_title)
     # print(sent_scores_text)
-    phrase_score_list = []
+    #phrase_score_list = []
     labels = {0: 'neutral', 1: 'positive', 2: 'negative'}
-    for item in key_phrases:
-        phrase = item['phrase']
-        input = tokenizer(phrase, return_tensors="pt", padding=True)
-        sent_scores_phrase = finbert(**input)[0]
-        nmpy_phrase = sent_scores_phrase.detach().numpy()
-        x = nmpy_phrase[0]
-        sft_phrase = (np.exp(x) / np.exp(x).sum())
-        print(phrase, "-->", sent_scores_phrase, labels[np.argmax(sft_phrase)], end="\n")
-        phrase_score_list.append(sft_phrase)
+    # for item in key_phrases:
+    #     phrase = item['phrase']
+    #     input = tokenizer(phrase, return_tensors="pt", padding=True)
+    #     sent_scores_phrase = finbert(**input)[0]
+    #     nmpy_phrase = sent_scores_phrase.detach().numpy()
+    #     x = nmpy_phrase[0]
+    #     sft_phrase = (np.exp(x) / np.exp(x).sum())
+    #     print(phrase, "-->", sent_scores_phrase, labels[np.argmax(sft_phrase)], end="\n")
+    #     phrase_score_list.append(sft_phrase)
     #print(phrase_score_list)
-    phrase_nmp = np.array(phrase_score_list)
-    final_snt_phrase = np.mean(phrase_nmp, axis=0)
-    print("\n The average sentiment score of key phrases is: ", final_snt_phrase, end="\n\n")
+    # phrase_nmp = np.array(phrase_score_list)
+    # final_snt_phrase = np.mean(phrase_nmp, axis=0)
+    # print("\n The average sentiment score of key phrases is: ", final_snt_phrase, end="\n\n")
     nmpy_title = sent_scores_title.detach().numpy()
     nmpy_text = sent_scores_text.detach().numpy()
     x1 = nmpy_title[0]
@@ -62,11 +62,11 @@ for counter in range(df.shape[0]):
     sft_text = (np.exp(x2) / np.exp(x2).sum())
     print("The sentiment score of title is: ", sft_title, end="\n\n")
     print("The sentiment score of summary is: ", sft_text, end="\n\n")
-    med_snt = np.vstack((sft_title, sft_text, final_snt_phrase))
+    med_snt = np.vstack((sft_title, sft_text))
     print(med_snt, end="\n\n\n")
     final_snt = np.mean(med_snt, axis=0)
-    print("The average sentiment score of title, key phrases and summary is: ", final_snt, end="\n\n")
-    print("The average sentiment of key phrases is:", labels[np.argmax(final_snt_phrase)], end="\n\n")
+    print("The average sentiment score of title and summary is: ", final_snt, end="\n\n")
+    #print("The average sentiment of key phrases is:", labels[np.argmax(final_snt_phrase)], end="\n\n")
     print("The sentiment of title is:", labels[np.argmax(sft_title)], end="\n\n")
     print("The sentiment of summary is:", labels[np.argmax(sft_text)], end="\n\n")
-    print("The average sentiment of title, key phrases, and summary, is:", labels[np.argmax(final_snt)], end="\n\n")
+    print("The average sentiment of title, and summary, is:", labels[np.argmax(final_snt)], end="\n\n")
