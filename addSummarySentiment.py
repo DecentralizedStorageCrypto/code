@@ -7,17 +7,13 @@ import torch.nn as tornn
 from db import mongodb
 import threading
 
-
-model = T5ForConditionalGeneration.from_pretrained('t5-large')
-tokenizer = T5Tokenizer.from_pretrained('t5-large')
-device = torch.device('cpu')
 localhost = "mongodb://127.0.0.1:27017"
 db_name = "players"
 collection_name = "newsByNode"
 mng = mongodb(localhost, db_name)
 
 
-def sumSent(start, end):
+def sumSent(start, end, model, tokenizer):
 
     df = mng.returnColAsDf(collection_name)
     for counter in range(start, end):
@@ -75,13 +71,15 @@ def sumSent(start, end):
 
 if __name__ == "__main__":
 
+    model = T5ForConditionalGeneration.from_pretrained('t5-large')
+    tokenizer = T5Tokenizer.from_pretrained('t5-large')
+    device = torch.device('cpu')
     batch_size = 100
     total = 1000
     counter = int(total/batch_size)
     threads = []
     for i in range(counter):
-        threads.append(threading.Thread(target=sumSent, args=(i*batch_size, (i+1)*batch_size)))
+        threads.append(threading.Thread(target=sumSent, args=(i*batch_size, (i+1)*batch_size,model, tokenizer)))
         threads[i].start()
     for j in range(counter):
         threads[j].join()
-
