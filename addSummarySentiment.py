@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     batch_size = 100
     total = 1000
-    counter = total / batch_size
+    counter = int(total/batch_size)
     threads = []
     for i in range(counter):
         threads.append(threading.Thread(target=sumSent, args=(i*batch_size, (i+1)*batch_size)))
