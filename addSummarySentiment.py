@@ -15,11 +15,11 @@ mng = mongodb(localhost, db_name)
 
 def sumSent(start, end):
 
-    model = T5ForConditionalGeneration.from_pretrained('t5-large')
-    tokenizer = T5Tokenizer.from_pretrained('t5-large')
-    device = torch.device('cpu')
     df = mng.returnColAsDf(collection_name)
     for counter in range(start, end):
+        model = T5ForConditionalGeneration.from_pretrained('t5-large')
+        tokenizer = T5Tokenizer.from_pretrained('t5-large')
+        device = torch.device('cpu')
         print(counter)
         _id = df['_id'][counter]
         title = str(df.iloc[counter]['title'])
@@ -77,7 +77,7 @@ def sumSent(start, end):
 if __name__ == "__main__":
 
 
-    batch_size = 500
+    batch_size = 1000
     total = 1000
     counter = int(total/batch_size)
     threads = []
