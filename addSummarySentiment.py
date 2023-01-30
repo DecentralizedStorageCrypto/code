@@ -15,13 +15,11 @@ mng = mongodb(localhost, db_name)
 
 def sumSent(start, end):
 
-    model = T5ForConditionalGeneration.from_pretrained('t5-large')
-    tokenizer = T5Tokenizer.from_pretrained('t5-large')
-    device = torch.device('cpu')
     df = mng.returnColAsDf(collection_name)
     for counter in range(start, end):
-        tmp_model = model
-        tmp_tokenizer = tokenizer
+        model = T5ForConditionalGeneration.from_pretrained('t5-large')
+        tokenizer = T5Tokenizer.from_pretrained('t5-large')
+        device = torch.device('cpu')
         print(counter)
         _id = df['_id'][counter]
         title = str(df.iloc[counter]['title'])
@@ -31,15 +29,14 @@ def sumSent(start, end):
         minLength = int(len(preprocess_text.split(" ")) / 8)
         t5_prepared_Text = "summarize: " + preprocess_text
         print(preprocess_text)
-        tokenized_text = tmp_tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(
-            device)
-        summary_ids = tmp_model.generate(tokenized_text,
+        tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(device)
+        summary_ids = model.generate(tokenized_text,
                                      num_beams=6,
                                      min_length=minLength,
                                      max_length=maxLength,
                                      length_penalty=5.
                                      )
-        summary = tmp_tokenizer.decode(summary_ids[0])
+        summary = tokenizer.decode(summary_ids[0])
         mng.addSummary(collection_name, _id, summary)
         print("\n\n summary: ", summary, end="\n")
 
