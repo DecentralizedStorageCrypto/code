@@ -13,8 +13,11 @@ collection_name = "newsByNode"
 mng = mongodb(localhost, db_name)
 
 
-def sumSent(start, end, model, tokenizer):
+def sumSent(start, end):
 
+    model = T5ForConditionalGeneration.from_pretrained('t5-large')
+    tokenizer = T5Tokenizer.from_pretrained('t5-large')
+    device = torch.device('cpu')
     df = mng.returnColAsDf(collection_name)
     for counter in range(start, end):
         _id = df['_id'][counter]
@@ -71,15 +74,13 @@ def sumSent(start, end, model, tokenizer):
 
 if __name__ == "__main__":
 
-    model = T5ForConditionalGeneration.from_pretrained('t5-large')
-    tokenizer = T5Tokenizer.from_pretrained('t5-large')
-    device = torch.device('cpu')
-    batch_size = 100
+
+    batch_size = 500
     total = 1000
     counter = int(total/batch_size)
     threads = []
     for i in range(counter):
-        threads.append(threading.Thread(target=sumSent, args=(i*batch_size, (i+1)*batch_size,model, tokenizer)))
+        threads.append(threading.Thread(target=sumSent, args=(i*batch_size, (i+1)*batch_size)))
         threads[i].start()
     for j in range(counter):
         threads[j].join()
