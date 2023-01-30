@@ -29,7 +29,7 @@ def sumSent(start, end):
         maxLength = int(len(preprocess_text.split(" ")) / 2)
         minLength = int(len(preprocess_text.split(" ")) / 8)
         t5_prepared_Text = "summarize: " + preprocess_text
-        print(preprocess_text)
+        #print(preprocess_text)
         tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(device)
         summary_ids = model.generate(tokenized_text,
                                      num_beams=6,
@@ -77,8 +77,8 @@ def sumSent(start, end):
 if __name__ == "__main__":
 
 
-    batch_size = 200
-    total = 1000
+    batch_size = 500
+    total = 2000
     counter = int(total/batch_size)
     threads = []
     for i in range(counter):
