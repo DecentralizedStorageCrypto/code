@@ -20,6 +20,7 @@ def sumSent(start, end):
     device = torch.device('cpu')
     df = mng.returnColAsDf(collection_name)
     for counter in range(start, end):
+        print(counter)
         _id = df['_id'][counter]
         title = str(df.iloc[counter]['title'])
         text = str(df.iloc[counter]['text'])
@@ -27,6 +28,7 @@ def sumSent(start, end):
         maxLength = int(len(preprocess_text.split(" ")) / 2)
         minLength = int(len(preprocess_text.split(" ")) / 8)
         t5_prepared_Text = "summarize: " + preprocess_text
+        print(preprocess_text)
         tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048, truncation=True).to(
             device)
         summary_ids = model.generate(tokenized_text,
