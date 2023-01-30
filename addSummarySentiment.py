@@ -18,9 +18,9 @@ def sumSent(start, end):
     df = mng.returnColAsDf(collection_name)
     for counter in range(start, end):
 
-        device = torch.device('cpu')
         model = T5ForConditionalGeneration.from_pretrained('t5-large')
         tokenizer = T5Tokenizer.from_pretrained('t5-large')
+        device = torch.device('cpu')
         print(counter)
         _id = df['_id'][counter]
         title = str(df.iloc[counter]['title'])
