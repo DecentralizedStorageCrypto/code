@@ -28,7 +28,7 @@ def sumSent(start, end):
             title = str(df.iloc[counter]['title'])
             text = str(df.iloc[counter]['text'])
             preprocess_text = text.strip().replace("\n", "")
-            maxLength = 512
+            maxLength = int(len(preprocess_text.split(" ")) / 2)
             minLength = int(len(preprocess_text.split(" ")) / 8)
             t5_prepared_Text = "summarize: " + preprocess_text
             # print(preprocess_text)
