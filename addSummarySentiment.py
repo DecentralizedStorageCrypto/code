@@ -46,7 +46,7 @@ def sumSent(start, end):
             summary_tmp = str(summary).split(" ")
             summary_lst = summary_tmp[:512]
             summary = " ".join(summary_lst)
-            print("\n truncated_summary: ", summary, end="\n")
+            #print("\n truncated_summary: ", summary, end="\n")
             try:
                 finbert = BertForSequenceClassification.from_pretrained('yiyanghkust/finbert-tone', num_labels=3)
                 tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-tone')

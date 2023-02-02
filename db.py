@@ -38,6 +38,34 @@ class mongodb:
         corsur = collection.find({'player': player})
         return corsur
 
+    def addSummary(self, collection ,id, summary):
+        collection = self.db[collection]
+        collection.update_one({'_id': id},{"$set": {'summary': str(summary)}})
+
+    def addTitleSentimentScore(self, collection ,id, sft_title):
+        collection = self.db[collection]
+        collection.update_one({'_id': id},{"$set": {'titleScore': sft_title}})
+
+    def addBodySentimentScore(self, collection ,id, sft_text):
+        collection = self.db[collection]
+        collection.update_one({'_id': id},{"$set": {'bodyScore': sft_text}})
+
+    def addAggSentimentScore(self, collection ,id, final_snt):
+        collection = self.db[collection]
+        collection.update_one({'_id': id},{"$set": {'aggScore': final_snt}})
+
+    def addTitleSentimentLabel(self, collection ,id, sft_title):
+        collection = self.db[collection]
+        collection.update_one({'_id': id},{"$set": {'titleLabel': sft_title}})
+
+    def addBodySentimentLabel(self, collection ,id, sft_text):
+        collection = self.db[collection]
+        collection.update_one({'_id': id},{"$set": {'bodyLabel': sft_text}})
+
+    def addAggSentimentLabel(self, collection ,id, final_snt):
+        collection = self.db[collection]
+        collection.update_one({'_id': id},{"$set": {'aggLabel': final_snt}})
+
 
     def addTokenizedTextbyId(self, collection ,id,tokenizedText):
         collection = self.db[collection]
