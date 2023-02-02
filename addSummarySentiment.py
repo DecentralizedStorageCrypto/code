@@ -3,7 +3,6 @@ import json
 from transformers import T5Tokenizer, T5ForConditionalGeneration, T5Config
 from transformers import BertTokenizer, BertForSequenceClassification
 import numpy as np
-import torch.nn as tornn
 from db import mongodb
 import threading
 import pandas as pd
@@ -80,12 +79,13 @@ def sumSent(start, end):
 if __name__ == "__main__":
 
 
-    batch_size = 250
+    batch_size = 100
     total = 1000
+    base = 1000
     counter = int(total/batch_size)
     threads = []
     for i in range(counter):
-        threads.append(threading.Thread(target=sumSent, args=(i*batch_size, (i+1)*batch_size)))
+        threads.append(threading.Thread(target=sumSent, args=((i*batch_size)+base, ((i+1)*batch_size)+base)))
         threads[i].start()
     for j in range(counter):
         threads[j].join()
