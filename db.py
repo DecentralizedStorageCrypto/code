@@ -21,7 +21,7 @@ class mongodb:
         return list(data)
 
     def returnColAsDf(self, collection):
-        print(collection)
+        #print(collection)
         collection = self.db[collection]
         data = collection.find({})
         df = pd.DataFrame(list(data))
@@ -43,9 +43,9 @@ class mongodb:
         collection = self.db[collection]
         collection.update_one({'_id': id},{"$set": {'tokenizedText': str(tokenizedText)}})
 
-    def addKeyPhrasesbyId(self, collection ,id, keyPhrases):
+    def addKeyPhrasesbyId(self, collection, id, keyPhrases):
         collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'KeyPhrase': keyPhrases }})
+        collection.update_one({'_id': id}, {"$set": {'KeyPhrase': keyPhrases }})
 
     def addTwoToFourKeyPhrasesbyId(self, collection, id, keyPhrases):
             collection = self.db[collection]
@@ -63,37 +63,17 @@ class mongodb:
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'tokenizedTweet': tokenizedTweet}})
 
-    def addSummary(self, collection, id, summmary):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'summary': summmary}})
-
-    def addTitleSentimentScore(self, collection, id, tScore):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'titleScore': tScore}})
-
-    def addBodySentimentScore(self, collection, id, bScore):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'bodyScore': bScore}})
-
-    def addAggSentimentScore(self, collection, id, aScore):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'aggScore': aScore}})
-
-    def addTitleSentimentLabel(self, collection, id, tLabel):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'titleLabel': tLabel}})
-
-    def addBodySentimentLabel(self, collection, id, bLabel):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'bodyLabel': bLabel}})
-
-    def addAggSentimentLabel(self, collection, id, aLabel):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'aggLabel': aLabel}})
-
     def addAggScore(self, collection, id, score):
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'aggrScore': score}})
+
+    def addScoreOne(self, collection, id, score):
+        collection = self.db[collection]
+        collection.update_one({'_id': id}, {"$set": {'score1': score}})
+
+    def addScoreTwo(self, collection, id, score):
+        collection = self.db[collection]
+        collection.update_one({'_id': id}, {"$set": {'score2': score}})
 
     def addRelation(self, collection, id, score):
             collection = self.db[collection]
@@ -128,9 +108,9 @@ class mongodb:
     # # #
     #
     #
-        # db.newsByNode.updateMany(
+        # db.storage.updateMany(
         #     {},
-        #     [{"$set": {"published_date": {"$toDate": "$published_date"}}}]
+        #     [{"$set": {"publishDate": {"$toDate": "$publishDate"}}}]
         # );
     # #
-
+#{'published_date':{$gte:ISODate("2022-05-05"),$lt:ISODate("2020-06-01"}}
