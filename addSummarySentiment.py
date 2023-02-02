@@ -8,16 +8,15 @@ import torch.nn as tornn
 import threading
 import pandas as pd
 
-# localhost = "mongodb://127.0.0.1:27017"
-# db_name = "players"
-# collection_name = "newsByNode"
-# mng = mongodb(localhost, db_name)
+localhost = "mongodb://127.0.0.1:27017"
+db_name = "players"
+collection_name = "newsByNode"
+mng = mongodb(localhost, db_name)
 
 
 def sumSent(start, end):
 
-    # df = mng.returnColAsDf(collection_name)
-    df = pd.read_csv("newsByEdge.csv")
+    df = mng.returnColAsDf(collection_name)
     for counter in range(start, end):
         chk = str(df.iloc[counter]['summary'])
         if chk != "NaN":
