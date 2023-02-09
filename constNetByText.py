@@ -18,8 +18,6 @@ NEO4J.enable_log(logging.INFO, sys.stdout)
 neo = NEO4J(bolt_url, user, password)
 db_name = "networkbytext"
 
-# neo.clear_graph(db_name)
-# sys.exit()
 
 def addToNetwork():
 

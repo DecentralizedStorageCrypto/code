@@ -1,26 +1,16 @@
 from db import mongodb
 import pandas as pd
-from pymongo import MongoClient
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 
 
-localhost = "mongodb://127.0.0.1:27017"
-db_name = "players"
-
-myclient = MongoClient(localhost)
-mydb = myclient[db_name]
-collectin_name = mydb["relations-v33"]
-
-mng = mongodb(localhost, db_name)
-
 def extractLinks():
 
-    df = pd.read_csv("allPly.csv", encoding='ANSI')
+    df = mng.returnColAsDf(collection_name_1)
     candidate_list = ['filecoin', 'storj', 'siacoin', 'arweave']
-    for c1 in range(0, 4):
-        player = df.iloc[c1]['player']
+    for c1 in candidate_list:
+        player = c1
         print(player)
         for c2 in range(df.shape[0]):
             dic = {}
@@ -29,11 +19,12 @@ def extractLinks():
                 print(term2)
                 dic['player'] = player
                 dic['entity'] = term2
-                lst_doc = extractData(player, term2)
+                lst_doc = collectData(player, term2)
                 dic['linkStatus'] = lst_doc
-                collectin_name.insert_one(dic)
+                #mng.writeOne(collection_name_2, dic)
 
-def extractData(term1, term2):
+def collectData(term1, term2):
+
     collected_data = []
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"}
@@ -77,4 +68,11 @@ def extractData(term1, term2):
     return collected_data
 
 if __name__ == "__main__":
+
+    metadata = pd.read_csv('metadata.csv')
+    dbUrl = metadata.iloc[0]['db_url']
+    db_name = metadata.iloc[0]['db_name']
+    mng = mongodb(dbUrl, db_name)
+    collectin_name_1 = metadata.iloc[0]['collectin_name1']
+    collectin_name_2 = metadata.iloc[0]['collectin_name2']
     extractLinks()

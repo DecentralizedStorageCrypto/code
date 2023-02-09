@@ -1,6 +1,9 @@
 import logging
 from neo4j import GraphDatabase
 
+
+#this class manages the connections between clients and neo4j database, for creating nodes and edges
+
 class NEO4J:
 
     def __init__(self, uri, user, password):
@@ -16,7 +19,7 @@ class NEO4J:
         handler.setLevel(level)
         logging.getLogger("neo4j").addHandler(handler)
         logging.getLogger("neo4j").setLevel(level)
-
+# this method create new node in the graph
     def create_new_player(self, db_name, labels=None, player=None, link=None, twitter=None, des=None):
         print(labels)
         if len(labels) == 1:
@@ -37,9 +40,7 @@ class NEO4J:
             query = f"MERGE (:`{label1}`:`{label2}`:`{label3}` {{name: \"{player}\", link:\"{link}\", twitter:\"{twitter}\", des:\"{des}\"}})"
             with self.driver.session(database=db_name) as session:
                 session.run(query)
-
-
-
+# this method creates edges between categories
     def create_new_edge_cat(self, db_name, labels1, node1, labels2, node2):
 
         if len(labels1) == 1 and len(labels2) == 1:
@@ -137,7 +138,7 @@ class NEO4J:
             with self.driver.session(database=db_name) as session:
                 session.run(query)
 
-
+#this method creates edges between entities
     def create_new_edge_rel(self, db_name, labels1, node1, labels2, node2, weight=None):
 
         if len(labels1) == 1 and len(labels2) == 1:
@@ -256,16 +257,3 @@ class NEO4J:
         )
         result = tx.run(query, person_name=person_name)
         return [row["name"] for row in result]
-
-# if __name__ == "__main__":
-#
-#     bolt_url = "bolt://localhost:7687"
-#     user = "neo4j"
-#     password = "228218"
-#     NEO4J.enable_log(logging.INFO, sys.stdout)
-#     neo = NEO4J(bolt_url, user, password)
-#     # neo.create_new_player("coin", "siacoin")
-#     # neo.create_new_edge("coin", "siacoin", "coin", "filecoin", 1.4)
-#     # neo.find_person("Alice")
-#     neo.clear_graph()
-#     neo.close()

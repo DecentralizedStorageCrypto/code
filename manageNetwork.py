@@ -4,15 +4,17 @@ from preprocessing import textProcessing
 
 class network:
 
+#initial login to the neo4j database
     def __init__(self, neoUrl, neoUser, neoPass):
         self.neoUrl = neoUrl
         self.neoUser = neoUser
         self.neoPass = neoPass
         self.neo = NEO4J(self.neoUrl, self.neoUser, self.neoPass)
 
+# this method removes the database
     def removeNet(self, db_name):
         self.neo.clear_graph(db_name)
-
+#this method add categories to the graph
     def add_node_category(self, collection_name, db_name):
         localhost = "mongodb://127.0.0.1:27017"
         mongo_db_name = "players"
@@ -28,6 +30,7 @@ class network:
                 lst_cat = category1
                 self.neo.create_new_player(db_name, lst_cat, p2)
 
+#this method adds entities to the graph
     def add_node_entity(self, collection_name, db_name):
         localhost = "mongodb://127.0.0.1:27017"
         mongo_db_name = "players"
@@ -41,6 +44,7 @@ class network:
             description = str(df.iloc[counter]['description'])
             self.neo.create_new_player(db_name, category, player, url, twitter, description)
 
+# this method adds edges between categories
     def add_edge_category(self, collection_name, db_name):
         localhost = "mongodb://127.0.0.1:27017"
         mongo_db_name = "players"
@@ -55,6 +59,7 @@ class network:
                 lst_cat = category1
                 self.neo.create_new_edge_cat(db_name, category1, player1, lst_cat, p2)
 
+#this method adds edges between entities and categories
     def add_edge_entity(self, collection_name, db_name):
         localhost = "mongodb://127.0.0.1:27017"
         mongo_db_name = "players"
@@ -71,6 +76,7 @@ class network:
                 cat1_list.append(root)
                 self.neo.create_new_edge_cat(db_name, cat1_list, p, category2, player_2)
 
+#this method adds edges between entities and scores them
     def add_edge_relations(self, collection_name_1, collection_name_2, db_name):
         localhost = "mongodb://127.0.0.1:27017"
         mongo_db_name = "players"
@@ -126,7 +132,6 @@ class network:
                     title_final_score += tmp_title_score
             except Exception as e:
                 print(str(e))
-
             #print(title_final_score)
             snippet_final_score = 0
             try:
@@ -148,7 +153,6 @@ class network:
                         else:
                             if player1 in tokens and p2_lst[0] in tokens:
                                 tmp_snippet_score += snip_pos
-
                     #print("final ->", tmp_snippet_score)
                     snippet_final_score += tmp_snippet_score
             except Exception as e:
@@ -162,7 +166,8 @@ class network:
                     elif str(url).find("twitter") != -1 or str(url).find("github") != -1 or str(url).find(
                             "linkedin") != -1 or str(url).find("youtube") != -1:
                         url_final_score += url_pos - epsilon
-            except:
+            except Exception as e:
+                print(str(e))
                 pass
             #print(url_final_score)
             final_score = round(((snippet_final_score + title_final_score + url_final_score) / 3), 2)

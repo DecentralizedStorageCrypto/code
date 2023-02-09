@@ -8,7 +8,6 @@ from db import mongodb
 import threading
 import sys
 
-
 localhost = "mongodb://127.0.0.1:27017"
 db_name = "players"
 mng = mongodb(localhost, db_name)
@@ -72,7 +71,7 @@ def parseXML(xmlfile, entity):
 
 #write to the orresponding collection of mongodb
 def writeToDb(doc):
-    mng.writeOne("newsByNode2", doc)
+    mng.writeOne("newsByNode", doc)
 
 def newsScrapper(tid, entity):
 
@@ -90,7 +89,7 @@ def newsScrapper(tid, entity):
     query = 'allintitle:{}'.format(entity) + ' ' + 'after:{}'.format(start_date) + ' ' + 'before:{}'.format(finish_date)
     #print(query)
     URL = BASE_URL + '/search?q={}'.format(query)
-    filename = 'info12/{}_news.xml'.format(entity)
+    filename = 'info/{}_news.xml'.format(entity)
     flag = loadPage(URL, filename)
     if flag:
         print('successfully done')
@@ -98,6 +97,7 @@ def newsScrapper(tid, entity):
 
 #calling main to collect latest news of the feed web page
 if __name__ == "__main__":
+
     df = mng.returnColAsDf(collection_name)
     entity_list = []
     for counter in range(df.shape[0]):
@@ -115,7 +115,6 @@ if __name__ == "__main__":
         print("current list is:", can_list)
         threads = []
         for i in range(len(can_list)):
-            #print(can_list[i])
             threads.append(threading.Thread(target=newsScrapper, args=(i, can_list[i])))
             threads[i].start()
         for j in range(len(can_list)):

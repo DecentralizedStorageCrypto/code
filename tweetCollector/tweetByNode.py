@@ -14,7 +14,6 @@ db_name = "players"
 mng = mongodb(localhost, db_name)
 collection_name = "entities"
 
-#keyword = "filecoin"
 def collectTweet(player, twitterAccount, date_list, delta, path):
 
     for date in date_list[::10]:
@@ -73,7 +72,7 @@ if __name__=="__main__":
                     for jsonObj in data:
                         doc = json.loads(jsonObj)
                         doc['entity'] = p_list[c]
-                        mng.writeOne("tweetByNode2", doc)
+                        mng.writeOne("tweetByNode", doc)
             except:
                 pass
         print("counter is:", counter)
@@ -99,6 +98,7 @@ if __name__=="__main__":
                 for jsonObj in data:
                     doc = json.loads(jsonObj)
                     doc['entity'] = p_list[c]
-                    mng.writeOne("tweetByNode2", doc)
-        except:
+                    mng.writeOne("tweetByNode", doc)
+        except Exception as e:
+            print(str(e))
             pass
