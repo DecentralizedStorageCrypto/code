@@ -18,7 +18,7 @@ class mongodb:
         print(collection)
         collection = self.db[collection]
         data = collection.find({})
-        return list(data)
+        return data
 
     def returnColAsDf(self, collection):
         #print(collection)

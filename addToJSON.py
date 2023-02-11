@@ -1,4 +1,5 @@
-
+import json
+from bson.json_util import dumps
 import numpy as np
 from db import mongodb
 import pandas as pd
@@ -8,5 +9,6 @@ db_name = "players"
 collection_name = "newsByEdge"
 mng = mongodb(localhost, db_name)
 
-df = mng.returnColAsDf(collection_name)
-df.to_json("newsByEdge.json")
+cursor = mng.returnCorsur(collection_name)
+with open('newsByNode.json', 'w') as file:
+    json.dump(json.loads(dumps(cursor)), file)
