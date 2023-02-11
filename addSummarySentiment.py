@@ -6,12 +6,13 @@ import numpy as np
 from db import mongodb
 import threading
 import pandas as pd
-
+#
 localhost = "mongodb://127.0.0.1:27017"
 db_name = "players"
 collection_name = "newsByEdge"
 mng = mongodb(localhost, db_name)
 
+#this method summarize the news articles and extracts associated sentiments.
 def sumSent(start, end):
 
     df = mng.returnColAsDf(collection_name)
@@ -31,14 +32,17 @@ def sumSent(start, end):
                 minLength = int(len(preprocess_text.split(" ")) / 8)
                 t5_prepared_Text = "summarize: " + preprocess_text
                 # print(preprocess_text)
+                #define tokenizer for T5 model
                 tokenized_text = tokenizer.encode(t5_prepared_Text, return_tensors="pt", max_length=2048,
                                                   truncation=True).to(device)
+                #define T5 model, to generate summary of news articles
                 summary_ids = model.generate(tokenized_text,
                                              num_beams=6,
                                              min_length=minLength,
                                              max_length=maxLength,
                                              length_penalty=5.
                                              )
+                #decode the output of T5 model
                 summary = tokenizer.decode(summary_ids[0])
                 mng.addSummary(collection_name, _id, summary)
                 print("\n main_summary: ", summary, end="\n")
@@ -46,6 +50,7 @@ def sumSent(start, end):
                 summary_lst = summary_tmp[:512]
                 summary = " ".join(summary_lst)
                 # print("\n truncated_summary: ", summary, end="\n")
+                #define FinBert model to extract sentiment of news articles
                 try:
                     finbert = BertForSequenceClassification.from_pretrained('yiyanghkust/finbert-tone', num_labels=3)
                     tokenizer = BertTokenizer.from_pretrained('yiyanghkust/finbert-tone')
@@ -74,9 +79,15 @@ def sumSent(start, end):
         except Exception as e:
             print(str(e))
             pass
+
+#initialize the main fnction
 if __name__ == "__main__":
+
+#batch size determines, number of sentences that assigns to each thread.
     batch_size = 100
+#total size, determines total number of news articles for summary etraction and sentiment analysis.
     total = 1000
+#base determines the starting point of news articles.
     base = 0
     counter = int(total/batch_size)
     threads = []
