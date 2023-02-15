@@ -8,15 +8,13 @@ import threading
 device = torch.device('cpu')
 localhost = "mongodb://127.0.0.1:27017"
 db_name = "players"
-collection_name = "tweetByEdge"
+collection_name = "tweetByNode"
 
 mng = mongodb(localhost, db_name)
 
 def addSnt(start, end):
-    df = mng.returnColAsDf(collection_name)
 
     for counter in range(start, end):
-
         try:
             _id = df['_id'][counter]
             tokenizedText = str(df.iloc[counter]['tokenizedTweet'])
@@ -42,10 +40,11 @@ def addSnt(start, end):
 #initialize the main fnction
 if __name__ == "__main__":
 
+    df = mng.returnColAsDf(collection_name)
 #batch size determines, number of sentences that assigns to each thread.
-    batch_size = 70
+    batch_size = 1000
 #total size, determines total number of news articles for summary etraction and sentiment analysis.
-    total = 7000
+    total = 30000
 #base determines the starting point of news articles.
     base = 0
     counter = int(total/batch_size)
