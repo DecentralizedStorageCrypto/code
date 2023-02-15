@@ -63,8 +63,8 @@ def sumSent(start, end):
                     nmpy_text = sent_scores_text.detach().numpy()
                     x1 = nmpy_title[0]
                     x2 = nmpy_text[0]
-                    sft_title = (np.exp(x1) / np.exp(x1).sum())
-                    sft_text = (np.exp(x2) / np.exp(x2).sum())
+                    sft_title = np.exp(x1) / np.exp(x1).sum()
+                    sft_text = np.exp(x2) / np.exp(x2).sum()
                     mng.addTitleSentimentScore(collection_name, _id, str(sft_title))
                     mng.addBodySentimentScore(collection_name, _id, str(sft_text))
                     med_snt = np.vstack((sft_title, sft_text))
