@@ -1,7 +1,6 @@
 from pymongo import MongoClient
 import pandas as pd
 class mongodb:
-
     def __init__(self, client, db):
         self.client = MongoClient(client)
         self.db = self.client[db]
@@ -18,7 +17,7 @@ class mongodb:
         print(collection)
         collection = self.db[collection]
         data = collection.find({})
-        return data
+        return list(data)
 
     def returnColAsDf(self, collection):
         #print(collection)
@@ -38,38 +37,21 @@ class mongodb:
         corsur = collection.find({'player': player})
         return corsur
 
-    def addSummary(self, collection ,id, summary):
+    def findNewsByEdge(self, collection, start, end, e1, e2):
         collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'summary': str(summary)}})
+        data = collection.find({'$and': [{'aggScore': {'$exists':'true'}}, {'entity1': e1}, {'entity2': e2}, {'published_date': {'$gte': start, '$lt': end}}]})
+        df = pd.DataFrame(list(data))
+        return df
 
-    def addTitleSentimentScore(self, collection ,id, sft_title):
+    def findNewsByNode(self, collection, start, end, e1):
         collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'titleScore': sft_title}})
-
-    def addBodySentimentScore(self, collection ,id, sft_text):
-        collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'bodyScore': sft_text}})
-
-    def addAggSentimentScore(self, collection ,id, final_snt):
-        collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'aggScore': final_snt}})
-
-    def addTitleSentimentLabel(self, collection ,id, sft_title):
-        collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'titleLabel': sft_title}})
-
-    def addBodySentimentLabel(self, collection ,id, sft_text):
-        collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'bodyLabel': sft_text}})
-
-    def addAggSentimentLabel(self, collection ,id, final_snt):
-        collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'aggLabel': final_snt}})
-
+        data = collection.find({'$and': [{'aggScore': {'$exists': 'true'}}, {'entity': e1}, {'published_date': {'$gte': start, '$lt': end}}]})
+        df = pd.DataFrame(list(data))
+        return df
 
     def addTokenizedTextbyId(self, collection ,id,tokenizedText):
         collection = self.db[collection]
-        collection.update_one({'_id': id},{"$set": {'tokenizedText': str(tokenizedText)}})
+        collection.update_one({'_id': id}, {"$set": {'tokenizedText': str(tokenizedText)}})
 
     def addKeyPhrasesbyId(self, collection, id, keyPhrases):
         collection = self.db[collection]
