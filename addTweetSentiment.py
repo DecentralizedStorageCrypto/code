@@ -18,6 +18,7 @@ def addSnt(start, end):
         try:
             chk = str(df.iloc[counter]['aggScore'])
             if chk == "nan":
+                print(counter)
                 _id = df['_id'][counter]
                 tokenizedText = str(df.iloc[counter]['tokenizedTweet'])
                 lst = (list(eval(tokenizedText)))
@@ -48,7 +49,7 @@ if __name__ == "__main__":
 #total size, determines total number of news articles for summary etraction and sentiment analysis.
     total = 30000
 #base determines the starting point of news articles.
-    base = 0
+    base = 60000
     counter = int(total/batch_size)
     threads = []
     for i in range(counter):
