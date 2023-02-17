@@ -49,6 +49,24 @@ class mongodb:
         df = pd.DataFrame(list(data))
         return df
 
+    def findTweetByEdge(self, collection, start, end, e1, e2):
+        collection = self.db[collection]
+        data = collection.find({'$and': [{'aggScore': {'$exists':'true'}}, {'entity1': e1}, {'entity2': e2}, {'date': {'$gte': start, '$lt': end}}]})
+        df = pd.DataFrame(list(data))
+        return df
+
+    def findFinanceByDate(self, collection, start, end):
+        collection = self.db[collection]
+        data = collection.find({'$and': [{'Date': {'$gte': start, '$lt': end}}]})
+        df = pd.DataFrame(list(data))
+        return df
+
+    def findFinanceExactByDate(self, collection, date):
+        collection = self.db[collection]
+        data = collection.find({'$and': [{'Date': {'$eq': date}}]})
+        df = pd.DataFrame(list(data))
+        return df
+
     def addTokenizedTextbyId(self, collection ,id,tokenizedText):
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'tokenizedText': str(tokenizedText)}})

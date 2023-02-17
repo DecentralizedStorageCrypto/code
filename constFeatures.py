@@ -1,5 +1,7 @@
 import time
 import datetime
+import yfinance as yf
+from ta import add_all_ta_features
 from preprocessing import textProcessing
 from collections import defaultdict
 import math
@@ -22,6 +24,11 @@ collection_name_1 = "entities"
 collection_name_2 = "relations"
 collection_name_3 = "newsByEdge"
 collection_name_4 = "newsByNode"
+collection_name_5 = "tweetByEdge"
+
+collection_name_7 = "filecoinFinance"
+
+
 txtprc = textProcessing()
 mng = mongodb(localhost, db_name)
 
@@ -103,26 +110,55 @@ def constGraph(df_1, start, end):
         linkStatus = df_1.iloc[counter]['linkStatus']
         score = computeScore(p1, p2, linkStatus)
         if score > 0:
-            data = mng.findNewsByEdge(collection_name_3, start, end, p1, p2)
+            news_data = mng.findNewsByEdge(collection_name_3, start, end, p1, p2)
+            tweet_data = mng.findTweetByEdge(collection_name_5, start, end, p1, p2)
             weight = score
+            news_score = 0
+            tweet_score = 0
             # Find weight by computing sentiment of news articles.
-            if data.shape[0] != 0:
+            if news_data.shape[0] != 0:
                 pos_score = 0
                 neg_score = 0
-                for c in range(data.shape[0]):
+                for c in range(news_data.shape[0]):
                     try:
-                        aggScore = str(data.iloc[c]['aggScore']).replace("[", "").replace("]", "")
+                        aggScore = str(news_data.iloc[c]['aggScore']).replace("[", "").replace("]", "")
                         aggScore = aggScore.split(" ")
                         ext_space = ''
-                        if ext_space in aggScore:
-                            aggScore.remove(ext_space)
+                        while True:
+                            if ext_space in aggScore:
+                                aggScore.remove(ext_space)
+                            else:
+                                break
                         pos_score += float(aggScore[1])
                         neg_score += float(aggScore[2])
                     except Exception as e:
                         print(str(e))
                         pass
-                weight = weight * math.exp(pos_score-neg_score)
+                news_score = (pos_score-neg_score)
+
+            if tweet_data.shape[0] != 0:
+                pos_score = 0
+                neg_score = 0
+                for c in range(tweet_data.shape[0]):
+                    try:
+                        aggScore = str(tweet_data.iloc[c]['aggScore']).replace("[", "").replace("]", "")
+                        aggScore = aggScore.split(" ")
+                        ext_space = ''
+                        while True:
+                            if ext_space in aggScore:
+                                aggScore.remove(ext_space)
+                            else:
+                                break
+                        pos_score += float(aggScore[1])
+                        neg_score += float(aggScore[2])
+                    except Exception as e:
+                        print(str(e))
+                        pass
+                tweet_score = (pos_score-neg_score)
+
+            weight = weight * math.exp(news_score + tweet_score)
             weight = round(weight, 4)
+            #print(weight)
             graph.add_edge(p1, p2, weight=weight)
 
     nodeToVec(graph, start, end)
@@ -178,6 +214,7 @@ def nodeToVec(graph, start, end):
     plt.show()
 
     entity_embeddings = model.get_layer("item_embeddings").get_weights()[0]
+
     coins_info = findSimilarEnt(entity_embeddings, vocabulary_lookup, vocabulary)
 
     extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary, start, end)
@@ -220,23 +257,20 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
         tmp_lst = coins_info[coin]
         all_emb = np.zeros((16, 48))
         for cnt, item in enumerate(tmp_lst):
-            print(cnt)
-            print(item)
             idx = vocabulary_lookup[item]
             vec = entity_embeddings[idx]
             all_emb[cnt, :] = vec
         for row in all_emb:
-            writeFeatures(coin, row)
+            writeFeatures("features/{}_1".format(coin), row)
+
         date_list = pd.date_range(start, end).tolist()
         delta = datetime.timedelta(days=1)
         for date in date_list[:-1]:
             total_scores = []
             for entity in tmp_lst:
-                start = date
-                print(start)
-                end = date + delta
-                print(end)
-                data = mng.findNewsByNode(collection_name_4, start, end, entity)
+                start_tmp = date
+                end_tmp = date + delta
+                data = mng.findNewsByNode(collection_name_4, start_tmp, end_tmp, entity)
                 pos_score = 0
                 neg_score = 0
                 neut_score = 0
@@ -246,8 +280,11 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
                             aggScore = str(data.iloc[c]['aggScore']).replace("[", "").replace("]", "")
                             aggScore = aggScore.split(" ")
                             ext_space = ''
-                            if ext_space in aggScore:
-                                aggScore.remove(ext_space)
+                            while True:
+                                if ext_space in aggScore:
+                                    aggScore.remove(ext_space)
+                                else:
+                                    break
                             neut_score += float(aggScore[0])
                             pos_score += float(aggScore[1])
                             neg_score += float(aggScore[2])
@@ -258,10 +295,24 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
                 total_scores.append(pos_score)
                 total_scores.append(neg_score)
             row = np.array(total_scores)
-            writeFeatures(coin, row)
-        break
+            writeFeatures("features/{}_2".format(coin), row)
+
+        fin_data = mng.findFinanceByDate("{}Finance".format(coin), start, end)
+        fin_data = fin_data.drop(['_id', 'Date'], axis=1)
+        for cnt in range(fin_data.shape[0]):
+            row = fin_data.iloc[cnt]
+            writeFeatures("features/{}_3".format(coin), row)
+        p1 = mng.findFinanceExactByDate("{}Finance".format(coin), end-delta)
+        p2 = mng.findFinanceExactByDate("{}Finance".format(coin), end)
+        label = 0
+        f_price = float(p1.iloc[0]['Adj Close'])
+        s_price = float(p2.iloc[0]['Adj Close'])
+        if s_price > f_price:
+            label = 1
+        writeFeatures("labels/{}".format(coin), [label])
 
 def writeFeatures(fname, row):
+
     with open("{}.csv".format(fname), "a", newline='') as fp:
         wr = csv.writer(fp)
         wr.writerow(row)
@@ -279,8 +330,15 @@ def next_step(graph, previous, current, p, q):
             weights.append(graph[current][neighbor]["weight"] / q)
 
     w = np.array(weights)
-    probabilities = (np.exp(w)) / (np.exp(w).sum())
-    next = np.random.choice(neighbors, size=1, p=probabilities)[0]
+    try:
+        probabilities = (np.exp(w)) / (np.exp(w).sum())
+        next = np.random.choice(neighbors, size=1, p=probabilities)[0]
+    except:
+        N = probabilities.size
+        probabilities = np.random.dirichlet(np.ones(N), size=1)[0]
+        print(probabilities)
+        next = np.random.choice(neighbors, size=1, p=probabilities)[0]
+
     return next
 
 def random_walk(graph, num_walks, num_steps, p, q, vocabulary_lookup):
@@ -383,12 +441,12 @@ if __name__ == "__main__":
     finish_date = datetime.date(int(f_lst[0]), int(f_lst[1]), int(f_lst[2]))
     date_list = pd.date_range(start_date, finish_date).tolist()
     delta = datetime.timedelta(days=7)
-    for date in date_list:
+    for i, date in enumerate(date_list):
+        # if i==20:
+        #     break
         start = date
         print(start)
         end = date + delta
         print(end)
         en_lst = []
         constGraph(df_1, start, end)
-        break
-        time.sleep(10)
