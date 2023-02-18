@@ -95,6 +95,14 @@ class mongodb:
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'aggrScore': score}})
 
+    def addAggSentimentScore(self, collection, id, score):
+        collection = self.db[collection]
+        collection.update_one({'_id': id}, {"$set": {'aggScore': score}})
+
+    def addAggSentimentLabel(self, collection, id, label):
+        collection = self.db[collection]
+        collection.update_one({'_id': id}, {"$set": {'aggLabel': label}})
+
     def addScoreOne(self, collection, id, score):
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'score1': score}})
