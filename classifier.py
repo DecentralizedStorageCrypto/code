@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import RobustScaler
 from keras import layers
 from keras.layers import Flatten
-import tensorflow as tf
 from keras.models import Model
 import sklearn.metrics as metrics
 import pandas as pd
@@ -29,17 +28,17 @@ def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
 def build_model(head_size,num_heads,ff_dim,num_transformer_blocks,mlp_units,dropout,mlp_dropout):
 
-    input1 = keras.Input(shape=(16, 48), dtype='float32')
-    lstm = layers.LSTM(32, kernel_regularizer=regularizers.l2(0.01))(input1)
+    input1 = Input(shape=(16, 48), dtype='float32')
+    lstm = layers.Bidirectional(layers.LSTM(64, kernel_regularizer=regularizers.l2(0.01)))(input1)
     d1 = layers.Dense(64, kernel_regularizer=regularizers.l2(0.01), activation='relu')(lstm)
 
-    input2 = keras.Input(shape=(7, 48))
+    input2 = Input(shape=(7, 48))
     x2 = input2
     for _ in range(num_transformer_blocks[0]):
         x2 = transformer_encoder(x2, head_size[0], num_heads[0], ff_dim, dropout)
     d2 = Flatten()(x2)
 
-    input3 = keras.Input(shape=(7, 92))
+    input3 = Input(shape=(7, 92))
     x3 = input3
     for _ in range(num_transformer_blocks[1]):
         x3 = transformer_encoder(x3, head_size[1], num_heads[1], ff_dim, dropout)
@@ -50,7 +49,7 @@ def build_model(head_size,num_heads,ff_dim,num_transformer_blocks,mlp_units,drop
         x4 = layers.Dense(dim, activation="relu")(x4)
         x4 = layers.Dropout(mlp_dropout)(x4)
     output = layers.Dense(1, activation="sigmoid")(x4)
-    return keras.Model([input1, input2, input3], output)
+    return Model([input1, input2, input3], output)
 
 def create_dataset(data1, data2, data3, labels):
 
@@ -102,14 +101,18 @@ k = 5
 num_val_samples = len(input1) // k
 num_epochs = 100
 
-for i in range(k):
+head_size = [[6, 23], [8, 46], [12, 23], [6, 46], [12, 46]]
+num_heads = [[8, 4], [6, 2], [4, 4], [8, 2], [4, 2]]
+ff_dim = [256, 128, 64, 64, 64]
+num_transformer_blocks = [[4,4], [4,6], [4,8], [6,8], [8,8]]
+mlp_units = [[128], [128, 64], [64, 64], [64, 32], [32, 32]]
 
+for i in range(k):
     print('processing fold #', i)
     input1_val_data = input1[i * num_val_samples: (i + 1) * num_val_samples]
     input2_val_data = input2[i * num_val_samples: (i + 1) * num_val_samples]
     input3_val_data = input3[i * num_val_samples: (i + 1) * num_val_samples]
     val_targets = train_label[i * num_val_samples: (i + 1) * num_val_samples]
-
     input1_partial_train_data = np.concatenate(
         [input1[:i * num_val_samples],
          input1[(i + 1) * num_val_samples:]],
@@ -126,16 +129,15 @@ for i in range(k):
         [train_label[:i * num_val_samples],
          train_label[(i + 1) * num_val_samples:]],
         axis=0)
-    model = build_model(head_size=[6, 46], num_heads=[8, 2], ff_dim=64, num_transformer_blocks=[2, 4], mlp_units=[64],
+    model = build_model(head_size=head_size[1], num_heads=num_heads[1], ff_dim=ff_dim[1],
+                        num_transformer_blocks=num_transformer_blocks[1], mlp_units=mlp_units[1],
                         mlp_dropout=0.4, dropout=0.2)
     model.compile(
-        loss="binary_crossentropy",
-        optimizer=keras.optimizers.Adam(learning_rate=1e-4),
-        metrics=['accuracy']
+        loss="binary_crossentropy",optimizer=keras.optimizers.Adam(learning_rate=1e-4),metrics=['accuracy']
     )
     model.summary()
     history = model.fit([input1_partial_train_data, input2_partial_train_data, input3_partial_train_data], partial_train_targets,
-              epochs = num_epochs, batch_size=16, validation_data=([input1_val_data, input2_val_data, input3_val_data], val_targets))
+              epochs = num_epochs, batch_size=256, validation_data=([input1_val_data, input2_val_data, input3_val_data], val_targets))
     history_dict = history.history
     acc = history.history['accuracy']
     loss_values = history_dict['loss']
