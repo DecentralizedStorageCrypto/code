@@ -6,9 +6,9 @@ import pandas as pd
 #
 localhost = "mongodb://127.0.0.1:27017"
 db_name = "players"
-collection_name = "newsByEdge"
+collection_name = "tweetByNode"
 mng = mongodb(localhost, db_name)
 
 cursor = mng.returnCorsur(collection_name)
-with open('newsByNode.json', 'w') as file:
+with open('tweetByNode.json', 'w') as file:
     json.dump(json.loads(dumps(cursor)), file)

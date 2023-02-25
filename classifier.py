@@ -7,7 +7,6 @@ from keras.layers import Flatten
 import tensorflow as tf
 from keras.models import Model
 import pandas as pd
-import sys
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
