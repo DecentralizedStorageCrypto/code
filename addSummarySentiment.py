@@ -16,7 +16,7 @@ mng = mongodb(localhost, db_name)
 def sumSent(start, end):
 
     df = mng.returnColAsDf(collection_name)
-    for counter in range(start, end):
+    for counterr in range(start, end):
         try:
             chk = str(df.iloc[counter]['summary'])
             if chk == "nan":
