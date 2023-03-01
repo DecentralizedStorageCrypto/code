@@ -44,11 +44,11 @@ if __name__ == "__main__":
 
     df = mng.returnColAsDf(collection_name)
 #batch size determines, number of sentences that assigns to each thread.
-    batch_size = 1000
+    batch_size = 155
 #total size, determines total number of news articles for summary etraction and sentiment analysis.
-    total = 30000
+    total = 155
 #base determines the starting point of news articles.
-    base = 60000
+    base = 195000
     counter = int(total/batch_size)
     threads = []
     for i in range(counter):

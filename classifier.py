@@ -10,7 +10,6 @@ from keras.layers import Flatten
 from keras.models import Model
 import sklearn.metrics as metrics
 import pandas as pd
-import sys
 
 def transformer_encoder(inputs, head_size, num_heads, ff_dim, dropout=0):
 
