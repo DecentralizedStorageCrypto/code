@@ -49,9 +49,15 @@ class mongodb:
         df = pd.DataFrame(list(data))
         return df
 
+    def findTweetByNode(self, collection, start, end, e1):
+        collection = self.db[collection]
+        data = collection.find({'$and': [{'aggScore': {'$exists': 'true'}}, {'entity': e1}, {'date': {'$gte': start, '$lt': end}}]})
+        df = pd.DataFrame(list(data))
+        return df
+
     def findTweetByEdge(self, collection, start, end, e1, e2):
         collection = self.db[collection]
-        data = collection.find({'$and': [{'aggScore': {'$exists':'true'}}, {'entity1': e1}, {'entity2': e2}, {'date': {'$gte': start, '$lt': end}}]})
+        data = collection.find({'$and': [{'aggScore': {'$exists': 'true'}}, {'entity1': e1}, {'entity2': e2}, {'date': {'$gte': start, '$lt': end}}]})
         df = pd.DataFrame(list(data))
         return df
 
@@ -94,14 +100,6 @@ class mongodb:
     def addAggScore(self, collection, id, score):
         collection = self.db[collection]
         collection.update_one({'_id': id}, {"$set": {'aggrScore': score}})
-
-    def addAggSentimentScore(self, collection, id, score):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'aggScore': score}})
-
-    def addAggSentimentLabel(self, collection, id, label):
-        collection = self.db[collection]
-        collection.update_one({'_id': id}, {"$set": {'aggLabel': label}})
 
     def addScoreOne(self, collection, id, score):
         collection = self.db[collection]
