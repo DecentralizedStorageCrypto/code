@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
 import matplotlib.pyplot as plt
+from keras import layers
 from db import mongodb
 import csv
 import sys
@@ -25,7 +25,7 @@ collection_name_2 = "relations"
 collection_name_3 = "newsByEdge"
 collection_name_4 = "newsByNode"
 collection_name_5 = "tweetByEdge"
-
+collection_name_6 = "tweetByNode"
 collection_name_7 = "filecoinFinance"
 
 
@@ -117,6 +117,7 @@ def constGraph(df_1, start, end):
             tweet_score = 0
             # Find weight by computing sentiment of news articles.
             if news_data.shape[0] != 0:
+                N = news_data.shape[0]
                 pos_score = 0
                 neg_score = 0
                 for c in range(news_data.shape[0]):
@@ -129,14 +130,22 @@ def constGraph(df_1, start, end):
                                 aggScore.remove(ext_space)
                             else:
                                 break
-                        pos_score += float(aggScore[1])
-                        neg_score += float(aggScore[2])
+                        pos = float(aggScore[1])
+                        neg = float(aggScore[2])
+                        neu = float(aggScore[0])
+                        arr = np.array([pos, neg, neu])
+                        res = np.argmax(arr)
+                        if res == 1:
+                            pos_score += pos
+                        elif res == 2:
+                            neg_score += neg
                     except Exception as e:
                         print(str(e))
                         pass
-                news_score = (pos_score-neg_score)
+                news_score = (pos_score-neg_score) / N
 
             if tweet_data.shape[0] != 0:
+                N = tweet_data.shape[0]
                 pos_score = 0
                 neg_score = 0
                 for c in range(tweet_data.shape[0]):
@@ -149,13 +158,19 @@ def constGraph(df_1, start, end):
                                 aggScore.remove(ext_space)
                             else:
                                 break
-                        pos_score += float(aggScore[1])
-                        neg_score += float(aggScore[2])
+                        pos = float(aggScore[1])
+                        neg = float(aggScore[2])
+                        neu = float(aggScore[0])
+                        arr = np.array([pos, neg, neu])
+                        res = np.argmax(arr)
+                        if res == 1:
+                            pos_score += pos
+                        elif res == 2:
+                            neg_score += neg
                     except Exception as e:
                         print(str(e))
                         pass
-                tweet_score = (pos_score-neg_score)
-
+                tweet_score = (pos_score-neg_score) / N
             weight = weight * math.exp(news_score + tweet_score)
             weight = round(weight, 4)
             #print(weight)
@@ -167,7 +182,7 @@ def nodeToVec(graph, start, end):
 
     vocabulary = list(graph.nodes)[::-1]
     vocabulary_lookup = {token: idx for idx, token in enumerate(vocabulary)}
-    p = 1/5
+    p = 1/3
     q = 1
     num_walks = 1
     num_steps = 3
@@ -182,7 +197,7 @@ def nodeToVec(graph, start, end):
         vocabulary_size=len(vocabulary),
     )
 
-    batch_size = 32
+    batch_size = 64
     dataset = create_dataset(
         targets=targets,
         contexts=contexts,
@@ -192,7 +207,7 @@ def nodeToVec(graph, start, end):
     )
     learning_rate = 0.001
     embedding_dim = 48
-    num_epochs = 1
+    num_epochs = 50
 
     model = create_model(len(vocabulary), embedding_dim)
     model.compile(
@@ -206,19 +221,14 @@ def nodeToVec(graph, start, end):
         show_dtype=True,
         show_layer_names=True,
     )
-
     history = model.fit(dataset, epochs=num_epochs)
     plt.plot(history.history["loss"])
     plt.ylabel("loss")
     plt.xlabel("epoch")
     plt.show()
-
     entity_embeddings = model.get_layer("item_embeddings").get_weights()[0]
-
     coins_info = findSimilarEnt(entity_embeddings, vocabulary_lookup, vocabulary)
-
     extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary, start, end)
-
 
 def findSimilarEnt(entity_embeddings, vocabulary_lookup, vocabulary):
 
@@ -234,82 +244,21 @@ def findSimilarEnt(entity_embeddings, vocabulary_lookup, vocabulary):
         tf.math.l2_normalize(entity_embeddings),
         transpose_b=True,
     )
-    _, indices = tf.math.top_k(similarities, k=16)
+    _, indices = tf.math.top_k(similarities, k=32)
     indices = indices.numpy().tolist()
     coin_similar = defaultdict(list)
     for idx, name in enumerate(dec_coins):
         tmp = []
-        print(name)
-        print("".rjust(len(name), "-"))
+        # print(name)
+        # print("".rjust(len(name), "-"))
         similar_entities = indices[idx]
         for c, entity in enumerate(similar_entities):
             similar_entity = vocabulary[entity]
             tmp.append(similar_entity)
-            print(c, "-->", similar_entity)
+            #print(c, "-->", similar_entity)
         coin_similar[name] = tmp
     return coin_similar
 
-
-def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary, start, end):
-
-    dec_coins = ['filecoin', 'storj', 'siacoin', 'arweave']
-    for coin in dec_coins:
-        tmp_lst = coins_info[coin]
-        all_emb = np.zeros((16, 48))
-        for cnt, item in enumerate(tmp_lst):
-            idx = vocabulary_lookup[item]
-            vec = entity_embeddings[idx]
-            all_emb[cnt, :] = vec
-        for row in all_emb:
-            writeFeatures("features/{}_1".format(coin), row)
-
-        date_list = pd.date_range(start, end).tolist()
-        delta = datetime.timedelta(days=1)
-        for date in date_list[:-1]:
-            total_scores = []
-            for entity in tmp_lst:
-                start_tmp = date
-                end_tmp = date + delta
-                data = mng.findNewsByNode(collection_name_4, start_tmp, end_tmp, entity)
-                pos_score = 0
-                neg_score = 0
-                neut_score = 0
-                if data.shape[0] != 0:
-                    for c in range(data.shape[0]):
-                        try:
-                            aggScore = str(data.iloc[c]['aggScore']).replace("[", "").replace("]", "")
-                            aggScore = aggScore.split(" ")
-                            ext_space = ''
-                            while True:
-                                if ext_space in aggScore:
-                                    aggScore.remove(ext_space)
-                                else:
-                                    break
-                            neut_score += float(aggScore[0])
-                            pos_score += float(aggScore[1])
-                            neg_score += float(aggScore[2])
-                        except Exception as e:
-                            print(str(e))
-                            pass
-                total_scores.append(neut_score)
-                total_scores.append(pos_score)
-                total_scores.append(neg_score)
-            row = np.array(total_scores)
-            writeFeatures("features/{}_2".format(coin), row)
-
-        fin_data = mng.findFinanceByDate("{}Finance".format(coin), start, end)
-        fin_data = fin_data.drop(['_id', 'Date'], axis=1)
-        for cnt in range(fin_data.shape[0]):
-            row = fin_data.iloc[cnt]
-            writeFeatures("features/{}_3".format(coin), row)
-        p1 = mng.findFinanceExactByDate("{}Finance".format(coin), end-delta)
-        p2 = mng.findFinanceExactByDate("{}Finance".format(coin), end)
-        label = 0
-        f_price = float(p1.iloc[0]['Adj Close'])
-        s_price = float(p2.iloc[0]['Adj Close'])
-        if s_price > f_price:
-            label = 1
-        writeFeatures("labels/{}".format(coin), [label])
 
 def writeFeatures(fname, row):
 
@@ -333,10 +282,10 @@ def next_step(graph, previous, current, p, q):
     try:
         probabilities = (np.exp(w)) / (np.exp(w).sum())
         next = np.random.choice(neighbors, size=1, p=probabilities)[0]
-    except:
+    except Exception as e:
+        print(str(e))
         N = probabilities.size
         probabilities = np.random.dirichlet(np.ones(N), size=1)[0]
-        print(probabilities)
         next = np.random.choice(neighbors, size=1, p=probabilities)[0]
 
     return next
@@ -431,22 +380,99 @@ def create_model(vocabulary_size, embedding_dim):
     model = keras.Model(inputs=inputs, outputs=logits)
     return model
 
+def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary, start, end):
+
+    dec_coins = ['filecoin', 'storj', 'siacoin', 'arweave']
+    for coin in dec_coins:
+        tmp_lst = coins_info[coin]
+        all_emb = np.zeros((32, 48))
+        for cnt, item in enumerate(tmp_lst):
+            idx = vocabulary_lookup[item]
+            vec = entity_embeddings[idx]
+            all_emb[cnt, :] = vec
+        for row in all_emb:
+            writeFeatures("allData/features-7-1-new/{}_1".format(coin), row)
+
+        date_list = pd.date_range(start, end).tolist()
+        delta = datetime.timedelta(days=1)
+        for date in date_list[:-1]:
+            all_scores = []
+            for entity in tmp_lst:
+                news_pos, news_neg, news_neut = 0, 0, 0
+                start_tmp = date
+                end_tmp = date + delta
+                news_data = mng.findNewsByNode(collection_name_4, start_tmp, end_tmp, entity)
+                if news_data.shape[0] != 0:
+                    for c in range(news_data.shape[0]):
+                        try:
+                            news_sent = news_data.iloc[i]['aggLabel']
+                            if news_sent == "positive":
+                                news_pos += 1
+                            elif news_sent == "neutral":
+                                news_neut += 1
+                            elif news_sent == "negative":
+                                news_neg += 1
+                        except Exception as e:
+                            print(str(e))
+                            pass
+                all_scores.append(news_pos)
+                all_scores.append(news_neut)
+                all_scores.append(news_neg)
+
+            for entity in tmp_lst:
+                tweet_pos, tweet_neg, tweet_neut = 0, 0, 0
+                start_tmp = date
+                end_tmp = date + delta
+                tweet_data = mng.findTweetByNode(collection_name_6, start_tmp, end_tmp, entity)
+                if tweet_data.shape[0] != 0:
+                    for c in range(tweet_data.shape[0]):
+                        try:
+                            tweet_sent = tweet_data.iloc[i]['aggLabel']
+                            if tweet_sent == "positive":
+                                tweet_pos += 1
+                            elif tweet_sent == "neutral":
+                                tweet_neut += 1
+                            elif tweet_sent == "negative":
+                                tweet_neg += 1
+                        except Exception as e:
+                            print(str(e))
+                            pass
+                all_scores.append(tweet_pos)
+                all_scores.append(tweet_neut)
+                all_scores.append(tweet_neg)
+            row = np.array(all_scores)
+            writeFeatures("allData/features-7-1-new/{}_2".format(coin), row)
+
+        fin_data = mng.findFinanceByDate("{}Finance".format(coin), start, end)
+        fin_data = fin_data.drop(['_id', 'Date'], axis=1)
+        for cnt in range(fin_data.shape[0]):
+            row = fin_data.iloc[cnt]
+            writeFeatures("allData/features-7-1-new/{}_3".format(coin), row)
+        p1 = mng.findFinanceExactByDate("{}Finance".format(coin), end-delta)
+        p2 = mng.findFinanceExactByDate("{}Finance".format(coin), end)
+        label = 0
+        f_price = float(p1.iloc[0]['Adj Close'])
+        s_price = float(p2.iloc[0]['Adj Close'])
+        if s_price > f_price:
+            label = 1
+        writeFeatures("allData/labels-7-1-new/{}".format(coin), [label])
+
 if __name__ == "__main__":
 
     df_1 = mng.returnColAsDf(collection_name_2)
     s_lst = "2022/01/01".split('/')
-    print(s_lst)
     start_date = datetime.date(int(s_lst[0]), int(s_lst[1]), int(s_lst[2]))
-    f_lst = "2022/02/01".split('/')
+    f_lst = "2023/01/01".split('/')
     finish_date = datetime.date(int(f_lst[0]), int(f_lst[1]), int(f_lst[2]))
     date_list = pd.date_range(start_date, finish_date).tolist()
-    delta = datetime.timedelta(days=7)
-    for i, date in enumerate(date_list):
-        # if i==20:
-        #     break
+    print(date_list)
+    beta = datetime.timedelta(days=7)
+    for i, date in enumerate(date_list[:-8]):
         start = date
+        print("".rjust(len(str(start)), "*"))
         print(start)
-        end = date + delta
+        end = date + beta
         print(end)
+        print("".rjust(len(str(end)), "*"))
         en_lst = []
         constGraph(df_1, start, end)
