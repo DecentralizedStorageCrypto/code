@@ -26,7 +26,6 @@ collection_name_3 = "newsByEdge"
 collection_name_4 = "newsByNode"
 collection_name_5 = "tweetByEdge"
 collection_name_6 = "tweetByNode"
-collection_name_7 = "filecoinFinance"
 
 
 txtprc = textProcessing()
@@ -206,8 +205,8 @@ def nodeToVec(graph, start, end):
         batch_size=batch_size,
     )
     learning_rate = 0.001
-    embedding_dim = 48
-    num_epochs = 50
+    embedding_dim = 64
+    num_epochs = 64
 
     model = create_model(len(vocabulary), embedding_dim)
     model.compile(
@@ -349,6 +348,7 @@ def generate_examples(sequences, window_size, num_negative_samples, vocabulary_s
     return np.array(targets), np.array(contexts), np.array(labels), np.array(weights)
 
 def create_dataset(targets, contexts, labels, weights, batch_size):
+
     inputs = {
         "target": targets,
         "context": contexts,
@@ -385,13 +385,13 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
     dec_coins = ['filecoin', 'storj', 'siacoin', 'arweave']
     for coin in dec_coins:
         tmp_lst = coins_info[coin]
-        all_emb = np.zeros((32, 48))
+        all_emb = np.zeros((32, 64))
         for cnt, item in enumerate(tmp_lst):
             idx = vocabulary_lookup[item]
             vec = entity_embeddings[idx]
             all_emb[cnt, :] = vec
         for row in all_emb:
-            writeFeatures("allData/features-7-1-new/{}_1".format(coin), row)
+            writeFeatures("allData/features-7-1/{}_1".format(coin), row)
 
         date_list = pd.date_range(start, end).tolist()
         delta = datetime.timedelta(days=1)
@@ -399,55 +399,52 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
             all_scores = []
             for entity in tmp_lst:
                 news_pos, news_neg, news_neut = 0, 0, 0
+                tweet_pos, tweet_neg, tweet_neut = 0, 0, 0
                 start_tmp = date
                 end_tmp = date + delta
                 news_data = mng.findNewsByNode(collection_name_4, start_tmp, end_tmp, entity)
+                tweet_data = mng.findTweetByNode(collection_name_6, start_tmp, end_tmp, entity)
                 if news_data.shape[0] != 0:
-                    for c in range(news_data.shape[0]):
+                    for c1 in range(news_data.shape[0]):
                         try:
-                            news_sent = news_data.iloc[i]['aggLabel']
+                            news_sent = news_data.iloc[c1]['aggLabel']
                             if news_sent == "positive":
-                                news_pos += 1
+                                news_pos += 10
                             elif news_sent == "neutral":
                                 news_neut += 1
                             elif news_sent == "negative":
-                                news_neg += 1
+                                news_neg -= 10
+                        except Exception as e:
+                            print(str(e))
+                            pass
+                if tweet_data.shape[0] != 0:
+                    for c2 in range(tweet_data.shape[0]):
+                        try:
+                            tweet_sent = tweet_data.iloc[c2]['aggLabel']
+                            if tweet_sent == "positive":
+                                tweet_pos += 5
+                            elif tweet_sent == "neutral":
+                                tweet_neut += 0.5
+                            elif tweet_sent == "negative":
+                                tweet_neg -= 5
                         except Exception as e:
                             print(str(e))
                             pass
                 all_scores.append(news_pos)
                 all_scores.append(news_neut)
                 all_scores.append(news_neg)
-
-            for entity in tmp_lst:
-                tweet_pos, tweet_neg, tweet_neut = 0, 0, 0
-                start_tmp = date
-                end_tmp = date + delta
-                tweet_data = mng.findTweetByNode(collection_name_6, start_tmp, end_tmp, entity)
-                if tweet_data.shape[0] != 0:
-                    for c in range(tweet_data.shape[0]):
-                        try:
-                            tweet_sent = tweet_data.iloc[i]['aggLabel']
-                            if tweet_sent == "positive":
-                                tweet_pos += 1
-                            elif tweet_sent == "neutral":
-                                tweet_neut += 1
-                            elif tweet_sent == "negative":
-                                tweet_neg += 1
-                        except Exception as e:
-                            print(str(e))
-                            pass
                 all_scores.append(tweet_pos)
                 all_scores.append(tweet_neut)
                 all_scores.append(tweet_neg)
             row = np.array(all_scores)
-            writeFeatures("allData/features-7-1-new/{}_2".format(coin), row)
+            writeFeatures("allData/features-7-1/{}_2".format(coin), row)
 
         fin_data = mng.findFinanceByDate("{}Finance".format(coin), start, end)
         fin_data = fin_data.drop(['_id', 'Date'], axis=1)
         for cnt in range(fin_data.shape[0]):
             row = fin_data.iloc[cnt]
-            writeFeatures("allData/features-7-1-new/{}_3".format(coin), row)
+            writeFeatures("allData/features-7-1/{}_3".format(coin), row)
+
         p1 = mng.findFinanceExactByDate("{}Finance".format(coin), end-delta)
         p2 = mng.findFinanceExactByDate("{}Finance".format(coin), end)
         label = 0
@@ -455,7 +452,7 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
         s_price = float(p2.iloc[0]['Adj Close'])
         if s_price > f_price:
             label = 1
-        writeFeatures("allData/labels-7-1-new/{}".format(coin), [label])
+        writeFeatures("allData/labels-7-1/{}".format(coin), [label])
 
 if __name__ == "__main__":
 
