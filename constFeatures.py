@@ -495,4 +495,3 @@ if __name__ == "__main__":
         print("".rjust(len(str(end)), "*"))
         en_lst = []
         constGraph(df_1, start, end)
-        break
