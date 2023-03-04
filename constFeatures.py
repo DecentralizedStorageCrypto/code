@@ -26,6 +26,7 @@ collection_name_3 = "newsByEdge"
 collection_name_4 = "newsByNode"
 collection_name_5 = "tweetByEdge"
 collection_name_6 = "tweetByNode"
+collection_name_7 = "filecoinFinance"
 
 
 txtprc = textProcessing()
@@ -206,7 +207,7 @@ def nodeToVec(graph, start, end):
     )
     learning_rate = 0.001
     embedding_dim = 64
-    num_epochs = 64
+    num_epochs = 1
 
     model = create_model(len(vocabulary), embedding_dim)
     model.compile(
@@ -348,7 +349,6 @@ def generate_examples(sequences, window_size, num_negative_samples, vocabulary_s
     return np.array(targets), np.array(contexts), np.array(labels), np.array(weights)
 
 def create_dataset(targets, contexts, labels, weights, batch_size):
-
     inputs = {
         "target": targets,
         "context": contexts,
@@ -407,43 +407,65 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
                 if news_data.shape[0] != 0:
                     for c1 in range(news_data.shape[0]):
                         try:
-                            news_sent = news_data.iloc[c1]['aggLabel']
-                            if news_sent == "positive":
-                                news_pos += 10
-                            elif news_sent == "neutral":
-                                news_neut += 1
-                            elif news_sent == "negative":
-                                news_neg -= 10
+                            aggScore = str(news_data.iloc[c1]['aggScore']).replace("[", "").replace("]", "")
+                            aggScore = aggScore.split(" ")
+                            ext_space = ''
+                            while True:
+                                if ext_space in aggScore:
+                                    aggScore.remove(ext_space)
+                                else:
+                                    break
+                            news_neut += float(aggScore[0])
+                            news_pos += float(aggScore[1])
+                            news_neg += float(aggScore[2])
+
                         except Exception as e:
                             print(str(e))
                             pass
+                    all_scores.append(news_neut/news_data.shape[0])
+                    all_scores.append(news_pos/news_data.shape[0])
+                    all_scores.append(news_neg/news_data.shape[0])
+
                 if tweet_data.shape[0] != 0:
                     for c2 in range(tweet_data.shape[0]):
                         try:
-                            tweet_sent = tweet_data.iloc[c2]['aggLabel']
-                            if tweet_sent == "positive":
-                                tweet_pos += 5
-                            elif tweet_sent == "neutral":
-                                tweet_neut += 0.5
-                            elif tweet_sent == "negative":
-                                tweet_neg -= 5
+                            aggScore = str(news_data.iloc[c2]['aggScore']).replace("[", "").replace("]", "")
+                            aggScore = aggScore.split(" ")
+                            ext_space = ''
+                            while True:
+                                if ext_space in aggScore:
+                                    aggScore.remove(ext_space)
+                                else:
+                                    break
+                            tweet_neut += float(aggScore[0])
+                            tweet_pos += float(aggScore[1])
+                            tweet_neg += float(aggScore[2])
+
+
                         except Exception as e:
                             print(str(e))
                             pass
-                all_scores.append(news_pos)
-                all_scores.append(news_neut)
-                all_scores.append(news_neg)
-                all_scores.append(tweet_pos)
-                all_scores.append(tweet_neut)
-                all_scores.append(tweet_neg)
+                    all_scores.append(tweet_neut / tweet_data.shape[0])
+                    all_scores.append(tweet_pos / tweet_data.shape[0])
+                    all_scores.append(tweet_neg / tweet_data.shape[0])
+
             row = np.array(all_scores)
             writeFeatures("allData/features-7-1/{}_2".format(coin), row)
 
-        fin_data = mng.findFinanceByDate("{}Finance".format(coin), start, end)
-        fin_data = fin_data.drop(['_id', 'Date'], axis=1)
-        for cnt in range(fin_data.shape[0]):
-            row = fin_data.iloc[cnt]
-            writeFeatures("allData/features-7-1/{}_3".format(coin), row)
+        fin_data_1 = mng.findFinanceByDate("{}Finance".format(coin), start, end)
+        fin_data_1 = fin_data_1.drop(['_id', 'Date'], axis=1)
+        fin_data_2 = mng.findFinanceByDate("bitcoinFinance", start, end)
+        fin_data_2 = fin_data_2.drop(['_id', 'Date'], axis=1)
+        fin_data_3 = mng.findFinanceByDate("ethFinance", start, end)
+        fin_data_3 = fin_data_3.drop(['_id', 'Date'], axis=1)
+        for cnt in range(fin_data_1.shape[0]):
+            row_1 = fin_data_1.iloc[cnt]
+            row_2 = fin_data_2.iloc[cnt]
+            row_3 = fin_data_3.iloc[cnt]
+            writeFeatures("allData/features-7-1/{}_3".format(coin), row_1)
+            writeFeatures("allData/features-7-1/{}_3".format(coin), row_2)
+            writeFeatures("allData/features-7-1/{}_3".format(coin), row_3)
+
 
         p1 = mng.findFinanceExactByDate("{}Finance".format(coin), end-delta)
         p2 = mng.findFinanceExactByDate("{}Finance".format(coin), end)
@@ -473,3 +495,4 @@ if __name__ == "__main__":
         print("".rjust(len(str(end)), "*"))
         en_lst = []
         constGraph(df_1, start, end)
+        break
