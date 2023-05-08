@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from keras import layers
 from db import mongodb
 import csv
@@ -26,14 +26,12 @@ collection_name_3 = "newsByEdge"
 collection_name_4 = "newsByNode"
 collection_name_5 = "tweetByEdge"
 collection_name_6 = "tweetByNode"
-collection_name_7 = "filecoinFinance"
-
 
 txtprc = textProcessing()
 mng = mongodb(localhost, db_name)
 
-def computeScore(e1, e2, linkStatus):
 
+def computeScore(e1, e2, linkStatus):
     df_exc = mng.returnColAsDf("excludeWords")
     exc_list = df_exc['word'].to_list()
     epsilon = 0.2
@@ -97,8 +95,8 @@ def computeScore(e1, e2, linkStatus):
     final_score = round(((snippet_final_score + title_final_score + url_final_score) / 3), 2)
     return final_score
 
-def constGraph(df_1, start, end):
 
+def constGraph(df_1, start, end):
     graph = nx.Graph()
     for counter in range(len(df_1)):
         p1 = df_1.iloc[counter]['player']
@@ -122,7 +120,7 @@ def constGraph(df_1, start, end):
                 neg_score = 0
                 for c in range(news_data.shape[0]):
                     try:
-                        aggScore = str(news_data.iloc[c]['aggScore']).replace("[", "").replace("]", "")
+                        aggScore = str(news_data.iloc[c]['bodyScore']).replace("[", "").replace("]", "")
                         aggScore = aggScore.split(" ")
                         ext_space = ''
                         while True:
@@ -142,7 +140,7 @@ def constGraph(df_1, start, end):
                     except Exception as e:
                         print(str(e))
                         pass
-                news_score = (pos_score-neg_score) / N
+                news_score = (pos_score - neg_score) / N
 
             if tweet_data.shape[0] != 0:
                 N = tweet_data.shape[0]
@@ -170,25 +168,25 @@ def constGraph(df_1, start, end):
                     except Exception as e:
                         print(str(e))
                         pass
-                tweet_score = (pos_score-neg_score) / N
-            weight = weight * math.exp(news_score + tweet_score)
+                tweet_score = (pos_score - neg_score) / N
+            #weight = weight * math.exp(news_score + tweet_score)
+            weight = math.exp(weight * (news_score + tweet_score))
             weight = round(weight, 4)
-            #print(weight)
+            # print(weight)
             graph.add_edge(p1, p2, weight=weight)
 
     nodeToVec(graph, start, end)
 
 def nodeToVec(graph, start, end):
-
     vocabulary = list(graph.nodes)[::-1]
     vocabulary_lookup = {token: idx for idx, token in enumerate(vocabulary)}
-    p = 1/3
+    p = 1 / 3
     q = 1
     num_walks = 1
     num_steps = 3
     walks = random_walk(graph, num_walks, num_steps, p, q, vocabulary_lookup)
-    #print(walks)
-    #print("Number of walks generated:", len(walks))
+    # print(walks)
+    # print("Number of walks generated:", len(walks))
     num_negative_samples = 4
     targets, contexts, labels, weights = generate_examples(
         sequences=walks,
@@ -206,8 +204,8 @@ def nodeToVec(graph, start, end):
         batch_size=batch_size,
     )
     learning_rate = 0.001
-    embedding_dim = 64
-    num_epochs = 1
+    embedding_dim = 32
+    num_epochs = 64
 
     model = create_model(len(vocabulary), embedding_dim)
     model.compile(
@@ -222,10 +220,10 @@ def nodeToVec(graph, start, end):
         show_layer_names=True,
     )
     history = model.fit(dataset, epochs=num_epochs)
-    plt.plot(history.history["loss"])
-    plt.ylabel("loss")
-    plt.xlabel("epoch")
-    plt.show()
+    # plt.plot(history.history["loss"])
+    # plt.ylabel("loss")
+    # plt.xlabel("epoch")
+    # plt.show()
     entity_embeddings = model.get_layer("item_embeddings").get_weights()[0]
     coins_info = findSimilarEnt(entity_embeddings, vocabulary_lookup, vocabulary)
     extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary, start, end)
@@ -244,7 +242,7 @@ def findSimilarEnt(entity_embeddings, vocabulary_lookup, vocabulary):
         tf.math.l2_normalize(entity_embeddings),
         transpose_b=True,
     )
-    _, indices = tf.math.top_k(similarities, k=32)
+    _, indices = tf.math.top_k(similarities, k=16)
     indices = indices.numpy().tolist()
     coin_similar = defaultdict(list)
     for idx, name in enumerate(dec_coins):
@@ -255,10 +253,9 @@ def findSimilarEnt(entity_embeddings, vocabulary_lookup, vocabulary):
         for c, entity in enumerate(similar_entities):
             similar_entity = vocabulary[entity]
             tmp.append(similar_entity)
-            #print(c, "-->", similar_entity)
+            # print(c, "-->", similar_entity)
         coin_similar[name] = tmp
     return coin_similar
-
 
 def writeFeatures(fname, row):
 
@@ -287,7 +284,6 @@ def next_step(graph, previous, current, p, q):
         N = probabilities.size
         probabilities = np.random.dirichlet(np.ones(N), size=1)[0]
         next = np.random.choice(neighbors, size=1, p=probabilities)[0]
-
     return next
 
 def random_walk(graph, num_walks, num_steps, p, q, vocabulary_lookup):
@@ -297,10 +293,10 @@ def random_walk(graph, num_walks, num_steps, p, q, vocabulary_lookup):
     for walk_iteration in range(num_walks):
         random.shuffle(nodes)
         for node in tqdm(
-            nodes,
-            position=0,
-            leave=True,
-            desc=f"Random walks iteration {walk_iteration + 1} of {num_walks}",
+                nodes,
+                position=0,
+                leave=True,
+                desc=f"Random walks iteration {walk_iteration + 1} of {num_walks}",
         ):
             walk = [node]
             while len(walk) < num_steps:
@@ -313,13 +309,14 @@ def random_walk(graph, num_walks, num_steps, p, q, vocabulary_lookup):
     return walks
 
 def generate_examples(sequences, window_size, num_negative_samples, vocabulary_size):
+
     example_weights = defaultdict(int)
     # Iterate over all sequences (walks).
     for sequence in tqdm(
-        sequences,
-        position=0,
-        leave=True,
-        desc=f"Generating postive and negative examples",
+            sequences,
+            position=0,
+            leave=True,
+            desc=f"Generating postive and negative examples",
     ):
         # Generate positive and negative skip-gram pairs for a sequence (walk).
         pairs, labels = keras.preprocessing.sequence.skipgrams(
@@ -348,6 +345,7 @@ def generate_examples(sequences, window_size, num_negative_samples, vocabulary_s
 
     return np.array(targets), np.array(contexts), np.array(labels), np.array(weights)
 
+
 def create_dataset(targets, contexts, labels, weights, batch_size):
     inputs = {
         "target": targets,
@@ -359,8 +357,8 @@ def create_dataset(targets, contexts, labels, weights, batch_size):
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
     return dataset
 
-def create_model(vocabulary_size, embedding_dim):
 
+def create_model(vocabulary_size, embedding_dim):
     inputs = {
         "target": layers.Input(name="target", shape=(), dtype="int32"),
         "context": layers.Input(name="context", shape=(), dtype="int32"),
@@ -384,30 +382,37 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
 
     dec_coins = ['filecoin', 'storj', 'siacoin', 'arweave']
     for coin in dec_coins:
+
         tmp_lst = coins_info[coin]
-        all_emb = np.zeros((32, 64))
+        all_emb = np.zeros((16, 32))
         for cnt, item in enumerate(tmp_lst):
             idx = vocabulary_lookup[item]
             vec = entity_embeddings[idx]
             all_emb[cnt, :] = vec
         for row in all_emb:
-            writeFeatures("allData/features-7-1/{}_1".format(coin), row)
+            writeFeatures("allData/features-14-1/{}_1".format(coin), row)
 
         date_list = pd.date_range(start, end).tolist()
         delta = datetime.timedelta(days=1)
+
         for date in date_list[:-1]:
+
             all_scores = []
             for entity in tmp_lst:
-                news_pos, news_neg, news_neut = 0, 0, 0
-                tweet_pos, tweet_neg, tweet_neut = 0, 0, 0
+                news_pos_score = 0
+                news_neg_score = 0
+                tweet_pos_score = 0
+                tweet_neg_score = 0
                 start_tmp = date
                 end_tmp = date + delta
                 news_data = mng.findNewsByNode(collection_name_4, start_tmp, end_tmp, entity)
                 tweet_data = mng.findTweetByNode(collection_name_6, start_tmp, end_tmp, entity)
+                news_score = 0
                 if news_data.shape[0] != 0:
+                    N = news_data.shape[0]
                     for c1 in range(news_data.shape[0]):
                         try:
-                            aggScore = str(news_data.iloc[c1]['aggScore']).replace("[", "").replace("]", "")
+                            aggScore = str(news_data.iloc[c1]['bodyScore']).replace("[", "").replace("]", "")
                             aggScore = aggScore.split(" ")
                             ext_space = ''
                             while True:
@@ -415,21 +420,28 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
                                     aggScore.remove(ext_space)
                                 else:
                                     break
-                            news_neut += float(aggScore[0])
-                            news_pos += float(aggScore[1])
-                            news_neg += float(aggScore[2])
-
+                            pos = float(aggScore[1])
+                            neg = float(aggScore[2])
+                            neu = float(aggScore[0])
+                            arr = np.array([pos, neg, neu])
+                            res = np.argmax(arr)
+                            if res == 1:
+                                news_pos_score += pos
+                            elif res == 2:
+                                news_neg_score += neg
                         except Exception as e:
                             print(str(e))
                             pass
-                    all_scores.append(news_neut/news_data.shape[0])
-                    all_scores.append(news_pos/news_data.shape[0])
-                    all_scores.append(news_neg/news_data.shape[0])
+                    news_score = (news_pos_score - news_neg_score) / N
 
+                all_scores.append(news_score)
+
+                tweet_score = 0
                 if tweet_data.shape[0] != 0:
+                    N = tweet_data.shape[0]
                     for c2 in range(tweet_data.shape[0]):
                         try:
-                            aggScore = str(news_data.iloc[c2]['aggScore']).replace("[", "").replace("]", "")
+                            aggScore = str(tweet_data.iloc[c2]['aggScore']).replace("[", "").replace("]", "")
                             aggScore = aggScore.split(" ")
                             ext_space = ''
                             while True:
@@ -437,44 +449,37 @@ def extractFeature(coins_info, entity_embeddings, vocabulary_lookup, vocabulary,
                                     aggScore.remove(ext_space)
                                 else:
                                     break
-                            tweet_neut += float(aggScore[0])
-                            tweet_pos += float(aggScore[1])
-                            tweet_neg += float(aggScore[2])
-
-
+                            pos = float(aggScore[1])
+                            neg = float(aggScore[2])
+                            neu = float(aggScore[0])
+                            arr = np.array([pos, neg, neu])
+                            res = np.argmax(arr)
+                            if res == 1:
+                                tweet_pos_score += pos
+                            elif res == 2:
+                                tweet_neg_score += neg
                         except Exception as e:
                             print(str(e))
                             pass
-                    all_scores.append(tweet_neut / tweet_data.shape[0])
-                    all_scores.append(tweet_pos / tweet_data.shape[0])
-                    all_scores.append(tweet_neg / tweet_data.shape[0])
-
+                    tweet_score = (tweet_pos_score - tweet_neg_score) / N
+                all_scores.append(tweet_score)
             row = np.array(all_scores)
-            writeFeatures("allData/features-7-1/{}_2".format(coin), row)
+            writeFeatures("allData/features-14-1/{}_2".format(coin), row)
 
         fin_data_1 = mng.findFinanceByDate("{}Finance".format(coin), start, end)
         fin_data_1 = fin_data_1.drop(['_id', 'Date'], axis=1)
-        fin_data_2 = mng.findFinanceByDate("bitcoinFinance", start, end)
-        fin_data_2 = fin_data_2.drop(['_id', 'Date'], axis=1)
-        fin_data_3 = mng.findFinanceByDate("ethFinance", start, end)
-        fin_data_3 = fin_data_3.drop(['_id', 'Date'], axis=1)
         for cnt in range(fin_data_1.shape[0]):
             row_1 = fin_data_1.iloc[cnt]
-            row_2 = fin_data_2.iloc[cnt]
-            row_3 = fin_data_3.iloc[cnt]
-            writeFeatures("allData/features-7-1/{}_3".format(coin), row_1)
-            writeFeatures("allData/features-7-1/{}_3".format(coin), row_2)
-            writeFeatures("allData/features-7-1/{}_3".format(coin), row_3)
+            writeFeatures("allData/features-14-1/{}_3".format(coin), row_1)
 
-
-        p1 = mng.findFinanceExactByDate("{}Finance".format(coin), end-delta)
-        p2 = mng.findFinanceExactByDate("{}Finance".format(coin), end)
+        p1 = mng.findFinanceExactByDate("{}Finance".format(coin), end - delta)
+        p2 = mng.findFinanceExactByDate("{}Finance".format(coin), end + (10*delta))
         label = 0
         f_price = float(p1.iloc[0]['Adj Close'])
         s_price = float(p2.iloc[0]['Adj Close'])
         if s_price > f_price:
             label = 1
-        writeFeatures("allData/labels-7-1/{}".format(coin), [label])
+        writeFeatures("allData/labels-14-10/{}".format(coin), [label])
 
 if __name__ == "__main__":
 
@@ -495,3 +500,4 @@ if __name__ == "__main__":
         print("".rjust(len(str(end)), "*"))
         en_lst = []
         constGraph(df_1, start, end)
+
